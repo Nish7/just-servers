@@ -1,12 +1,14 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"net"
 )
 
 func main() {
+	fmt.Printf("Listening on port 8080")
 	l, err := net.Listen("tcp", "0.0.0.0:8080")
 	if err != nil {
 		log.Fatal(err)
