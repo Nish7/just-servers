@@ -19,6 +19,10 @@ func (req *Request) validFields() bool {
 		return false
 	}
 
+	if *req.Method != "isPrime" {
+		return false
+	}
+
 	if req.Number == nil {
 		return false
 	}
@@ -48,24 +52,18 @@ func handleRequest(c net.Conn) {
 		log.Printf("Recieved: %v", message)
 
 		var request Request
-		err = json.Unmarshal([]byte(message), request)
+		err = json.Unmarshal([]byte(message), &request)
 
 		// handle validation
-		if !request.validFields() {
-			log.Print("Invalid Field")
-			c.Write([]byte("Invalid Fields"))
-			break
-		}
-
 		if err != nil {
 			log.Print(err.Error())
 			c.Write([]byte(err.Error()))
 			break
 		}
 
-		if *request.Method != "isPrime" {
-			log.Print("Request method is not isPrime")
-			c.Write([]byte("Request Method is not isPrime"))
+		if !request.validFields() {
+			log.Print("Invalid Fields")
+			c.Write([]byte("Invalid Fields"))
 			break
 		}
 
