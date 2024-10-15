@@ -1,4 +1,4 @@
-# 0: Prime Time
+# 1: Prime Time
 https://protohackers.com/problem/1
 
 - JSON based protocol
