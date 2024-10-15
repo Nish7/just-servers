@@ -33,7 +33,7 @@ func handleRequest(c net.Conn) {
 			break
 		}
 
-		fmt.Printf("Recieved: %v", message)
+		log.Printf("Recieved: %v", message)
 
 		var request Request
 		err = json.Unmarshal([]byte(message), &request)
