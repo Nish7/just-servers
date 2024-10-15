@@ -10,8 +10,8 @@ import (
 )
 
 type Request struct {
-	Method *string  `json:"method"`
-	Number *big.Int `json:"number"`
+	Method *string    `json:"method"`
+	Number *big.Float `json:"number"`
 }
 
 func (req *Request) validFields() bool {
@@ -80,9 +80,17 @@ func handleRequest(c net.Conn) {
 	}
 }
 
-func isPrime(n big.Int) bool {
+func isPrime(n big.Float) bool {
+	// convert to a big int. if a float than return false
+	if !n.IsInt() {
+		return false
+	}
+
+	bigInt := new(big.Int)
+	n.Int(bigInt)
 	k := 10 // A higher k increases the confidence that the number is prime, but it also takes more time.
-	return n.ProbablyPrime(k)
+
+	return bigInt.ProbablyPrime(k)
 }
 
 func main() {
