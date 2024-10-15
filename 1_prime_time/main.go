@@ -10,8 +10,8 @@ import (
 )
 
 type Request struct {
-	Method *string    `json:"method"`
-	Number *big.Float `json:"number"`
+	Method *string `json:"method"`
+	Number *string `json:"number"`
 }
 
 func (req *Request) validFields() bool {
@@ -67,30 +67,49 @@ func handleRequest(c net.Conn) {
 			break
 		}
 
-		// handle response
-		res := Response{Method: "isPrime", Prime: isPrime(*request.Number)}
-		resJson, err := json.Marshal(res)
+		// convert the string to bigInt
+		bigInt := new(big.Int)
+		_, success := bigInt.SetString(*request.Number, 10)
 
-		if err != nil {
-			log.Fatal(err)
+		if !success {
+			log.Printf("not a int: %v", *request.Number)
+
+			// handle floats
+			if isBigFloat(*request.Number) {
+				res := Response{Method: "isPrime", Prime: false}
+				handleResponse(c, res)
+			}
+
+			c.Write([]byte("not a int"))
+			break
 		}
 
-		log.Print("Response: ", string(resJson)+"\n")
-		c.Write([]byte(string(resJson) + "\n"))
+		// handle response
+		res := Response{Method: "isPrime", Prime: isPrime(*bigInt)}
+		handleResponse(c, res)
 	}
 }
 
-func isPrime(n big.Float) bool {
-	// convert to a big int. if a float than return false
-	if !n.IsInt() {
-		return false
+func handleResponse(c net.Conn, res Response) {
+	resJson, err := json.Marshal(res)
+
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	bigInt := new(big.Int)
-	n.Int(bigInt)
-	k := 10 // A higher k increases the confidence that the number is prime, but it also takes more time.
+	log.Print("Response: ", string(resJson)+"\n")
+	c.Write([]byte(string(resJson) + "\n"))
+}
 
-	return bigInt.ProbablyPrime(k)
+func isPrime(n big.Int) bool {
+	k := 10 // A higher k increases the confidence that the number is prime, but it also takes more time.
+	return n.ProbablyPrime(k)
+}
+
+func isBigFloat(str string) bool {
+	bigFloat := new(big.Float)
+	_, success := bigFloat.SetString(str)
+	return success
 }
 
 func main() {
