@@ -28,6 +28,7 @@ func handleRequest(c net.Conn) {
 		message, err := reader.ReadString('\n')
 
 		if err != nil {
+			log.Print(err.Error())
 			c.Write([]byte(err.Error()))
 			break
 		}
@@ -39,16 +40,19 @@ func handleRequest(c net.Conn) {
 
 		// handle validation
 		if err != nil {
+			log.Print(err.Error())
 			c.Write([]byte(err.Error()))
 			break
 		}
 
 		if request.Number < 1 {
+			log.Print("Number should be greater 1")
 			c.Write([]byte("Number should be greater 1"))
 			break
 		}
 
 		if request.Method != "isPrime" {
+			log.Print("Request method is not isPrime")
 			c.Write([]byte("Request Method is not isPrime"))
 			break
 		}
@@ -61,6 +65,7 @@ func handleRequest(c net.Conn) {
 			log.Fatal(err)
 		}
 
+		log.Print("Response: ", string(resJson)+"\n")
 		c.Write([]byte(string(resJson) + "\n"))
 	}
 }
