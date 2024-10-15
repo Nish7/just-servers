@@ -45,12 +45,6 @@ func handleRequest(c net.Conn) {
 			break
 		}
 
-		if request.Number < 1 {
-			log.Print("Number should be greater 1")
-			c.Write([]byte("Number should be greater 1"))
-			break
-		}
-
 		if request.Method != "isPrime" {
 			log.Print("Request method is not isPrime")
 			c.Write([]byte("Request Method is not isPrime"))
@@ -71,6 +65,10 @@ func handleRequest(c net.Conn) {
 }
 
 func isPrime(n int) bool {
+	if n < 0 {
+		return false
+	}
+
 	if n == 1 {
 		return false
 	}
