@@ -9,9 +9,33 @@ import (
 	"net"
 )
 
+type BigNumber struct {
+	BigInt  *big.Int
+	IsFloat bool
+}
+
+func (n *BigNumber) UnmarshalJSON(data []byte) error {
+	// Try to unmarshal into a string first
+	numStr := string(data)
+
+	floatValue := new(big.Float)
+	if _, ok := floatValue.SetString(numStr); ok {
+		if floatValue.IsInt() {
+			n.BigInt = new(big.Int)
+			floatValue.Int(n.BigInt)
+			n.IsFloat = false
+		} else {
+			n.IsFloat = true
+		}
+	} else {
+		return fmt.Errorf("invalid number format: %s", numStr)
+	}
+	return nil
+}
+
 type Request struct {
-	Method *string `json:"method"`
-	Number *string `json:"number"`
+	Method *string    `json:"method"`
+	Number *BigNumber `json:"number"`
 }
 
 func (req *Request) validFields() bool {
@@ -68,24 +92,14 @@ func handleRequest(c net.Conn) {
 		}
 
 		// convert the string to bigInt
-		bigInt := new(big.Int)
-		_, success := bigInt.SetString(*request.Number, 10)
-
-		if !success {
-			log.Printf("not a int: %v", *request.Number)
-
-			// handle floats
-			if isBigFloat(*request.Number) {
-				res := Response{Method: "isPrime", Prime: false}
-				handleResponse(c, res)
-			}
-
-			c.Write([]byte("not a int"))
+		if request.Number.IsFloat {
+			res := Response{Method: "isPrime", Prime: false}
+			handleResponse(c, res)
 			break
 		}
 
 		// handle response
-		res := Response{Method: "isPrime", Prime: isPrime(*bigInt)}
+		res := Response{Method: "isPrime", Prime: isPrime(*request.Number.BigInt)}
 		handleResponse(c, res)
 	}
 }
@@ -106,10 +120,11 @@ func isPrime(n big.Int) bool {
 	return n.ProbablyPrime(k)
 }
 
-func isBigFloat(str string) bool {
-	bigFloat := new(big.Float)
-	_, success := bigFloat.SetString(str)
-	return success
+func convertToInt(f *big.Float) (*big.Int, bool) {
+	hasFractionalPart := !f.IsInt()
+	bigInt := new(big.Int)
+	f.Int(bigInt)
+	return bigInt, hasFractionalPart
 }
 
 func main() {
