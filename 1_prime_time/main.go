@@ -43,6 +43,11 @@ func handleRequest(c net.Conn) {
 			break
 		}
 
+		if request.Number < 1 {
+			c.Write([]byte("Number should be greater 1"))
+			break
+		}
+
 		if request.Method != "isPrime" {
 			c.Write([]byte("Request Method is not isPrime"))
 			break
