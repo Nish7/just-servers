@@ -5,13 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"math"
+	"math/big"
 	"net"
 )
 
 type Request struct {
-	Method *string `json:"method"`
-	Number *int    `json:"number"`
+	Method *string  `json:"method"`
+	Number *big.Int `json:"number"`
 }
 
 func (req *Request) validFields() bool {
@@ -80,31 +80,9 @@ func handleRequest(c net.Conn) {
 	}
 }
 
-func isPrime(n int) bool {
-	if n < 0 {
-		return false
-	}
-
-	if n == 1 {
-		return false
-	}
-
-	if n == 2 {
-		return true
-	}
-
-	if n%2 == 0 {
-		return false
-	}
-
-	sqrtN := int(math.Sqrt(float64(n)))
-	for i := 3; i <= sqrtN; i += 2 {
-		if n%i == 0 {
-			return false
-		}
-	}
-
-	return true
+func isPrime(n big.Int) bool {
+	k := 10 // A higher k increases the confidence that the number is prime, but it also takes more time.
+	return n.ProbablyPrime(k)
 }
 
 func main() {
