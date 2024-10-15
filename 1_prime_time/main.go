@@ -10,8 +10,20 @@ import (
 )
 
 type Request struct {
-	Method string `json:"method"`
-	Number int    `json:"number"`
+	Method *string `json:"method"`
+	Number *int    `json:"number"`
+}
+
+func (req *Request) validFields() bool {
+	if req.Method == nil {
+		return false
+	}
+
+	if req.Number == nil {
+		return false
+	}
+
+	return true
 }
 
 type Response struct {
@@ -36,23 +48,29 @@ func handleRequest(c net.Conn) {
 		log.Printf("Recieved: %v", message)
 
 		var request Request
-		err = json.Unmarshal([]byte(message), &request)
+		err = json.Unmarshal([]byte(message), request)
 
 		// handle validation
+		if !request.validFields() {
+			log.Print("Invalid Field")
+			c.Write([]byte("Invalid Fields"))
+			break
+		}
+
 		if err != nil {
 			log.Print(err.Error())
 			c.Write([]byte(err.Error()))
 			break
 		}
 
-		if request.Method != "isPrime" {
+		if *request.Method != "isPrime" {
 			log.Print("Request method is not isPrime")
 			c.Write([]byte("Request Method is not isPrime"))
 			break
 		}
 
 		// handle response
-		res := Response{Method: "isPrime", Prime: isPrime(request.Number)}
+		res := Response{Method: "isPrime", Prime: isPrime(*request.Number)}
 		resJson, err := json.Marshal(res)
 
 		if err != nil {
