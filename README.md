@@ -1,5 +1,5 @@
 # just-servers 
-Low-Level Go Server Implementations
+Collection of Networking Server Implementations in Go
 
 ## Challenges
 [Protohacker Challenges](https://protohackers.co)
