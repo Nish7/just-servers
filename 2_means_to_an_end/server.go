@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"net"
 )
 
@@ -20,6 +21,7 @@ func NewServer(addr string) *Server {
 
 func (s *Server) Start() error {
 	l, err := net.Listen("tcp", s.addr)
+	fmt.Printf("Server Listening on %s\n", s.addr)
 	s.listener = l
 
 	if err != nil {
@@ -36,6 +38,7 @@ func (s *Server) Start() error {
 func (s *Server) Accept(l net.Listener) {
 	for {
 		conn, err := l.Accept()
+		fmt.Printf("New Connection: %s\n", conn.RemoteAddr().String())
 
 		if err != nil {
 			fmt.Printf("connection error: %v\n", err)
@@ -48,8 +51,20 @@ func (s *Server) Accept(l net.Listener) {
 
 func (s *Server) HandleConnection(conn net.Conn) {
 	defer conn.Close()
+	buf := make([]byte, 9)
 
 	for {
-		// handle the request
+		_, err := conn.Read(buf)
+
+		if err != nil {
+			if err == io.EOF {
+				fmt.Printf("Connection closed by client: %s\n", conn.RemoteAddr().String())
+			} else {
+				fmt.Printf("Read error: %v\n", err)
+			}
+			break
+		}
+
+		fmt.Printf("Recieved (%s): %x\n", conn.RemoteAddr().String(), buf)
 	}
 }
