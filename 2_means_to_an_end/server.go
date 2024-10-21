@@ -52,11 +52,12 @@ func (s *Server) Accept(l net.Listener) {
 
 func (s *Server) HandleConnection(conn net.Conn) {
 	defer conn.Close()
-	buf := make(Request, 9)
+	request := make(Request, 9)
 	store := NewInMemoryStore()
 
 	for {
-		_, err := conn.Read(buf)
+		_, err := conn.Read(request)
+		fmt.Printf("Binary Data %v\n", request)
 
 		if err != nil {
 			if err == io.EOF {
@@ -67,8 +68,8 @@ func (s *Server) HandleConnection(conn net.Conn) {
 			break
 		}
 
-		operation, n1, n2 := buf.Decode()
-		fmt.Printf("Recieved (%s): %x (hex) - operation [%c], n2 [%d] n2 [%d]\n", conn.RemoteAddr().String(), buf, operation, n1, n2)
+		operation, n1, n2 := request.Decode()
+		fmt.Printf("Recieved (%s): %x (hex) - operation [%c], n2 [%d] n2 [%d]\n", conn.RemoteAddr().String(), request, operation, n1, n2)
 		s.HandleRequest(store, conn, operation, n1, n2)
 	}
 }
