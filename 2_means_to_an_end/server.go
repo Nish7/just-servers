@@ -52,6 +52,7 @@ func (s *Server) Accept(l net.Listener) {
 func (s *Server) HandleConnection(conn net.Conn) {
 	defer conn.Close()
 	buf := make(Request, 9)
+	store := NewInMemoryStore()
 
 	for {
 		_, err := conn.Read(buf)
@@ -67,17 +68,22 @@ func (s *Server) HandleConnection(conn net.Conn) {
 
 		operation, n1, n2 := buf.Decode()
 		fmt.Printf("Recieved (%s): %x (hex) - operation [%c], n2 [%d] n2 [%d]\n", conn.RemoteAddr().String(), buf, operation, n1, n2)
-		s.HandleRequest(conn, operation, n1, n2)
+		s.HandleRequest(store, conn, operation, n1, n2)
 	}
 }
 
-func (s *Server) HandleRequest(conn net.Conn, operation rune, n1 int32, n2 int32) {
+func (s *Server) HandleRequest(store Store, conn net.Conn, operation rune, n1 int32, n2 int32) {
 	switch operation {
 	case 'I':
-		fmt.Print("Insert Operation!\n")
+		s.HandleInsert(store, conn.RemoteAddr(), n1, n2)
 	case 'Q':
 		fmt.Print("Query Operation!\n")
 	default:
 		fmt.Print("Invalid Operation\n")
 	}
+}
+
+func (s *Server) HandleInsert(store Store, remoteAddr net.Addr, timestamp, price int32) {
+	store.Insert(timestamp, price)
+	fmt.Printf("Value Inserted:\n Store = %v\n", store)
 }

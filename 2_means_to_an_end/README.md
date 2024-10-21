@@ -30,4 +30,14 @@ console.
 - Convertion to twos complement is really intresting 
     -  firstly, it assumes the data is in big-endian Format. Which mean MSB comes first
     -  In Big-Endian, the most significant byte (0x12) is stored at the lowest memory address (first = 0)
+    - We have currently used binary package to handle the combining the 4 bytes into a 32 bit integer, internallly, it is handled by shifting the bits by its respective position in 32bit size and then using an 
+    OR operator on those.
+    - type casting `int32` on the 4 bytes would handle the conversion for twos complement
 
+
+- Considering Data Race conditions could happen if using a shared map is being accessed by bunch of go routines
+    - we make it safe by the use of mutex and sync.map
+    - However, i opted for more secure by design approach
+    - Rather making a shared map and accessing those, will create a new map per connection and keep track of that.
+    - It would be a connection specific state managed, whenever we drop the go routine we clean up
+    database as well. Which is the intended feature as well
