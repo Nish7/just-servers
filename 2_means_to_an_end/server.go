@@ -80,6 +80,7 @@ func (s *Server) HandleRequest(store Store, conn net.Conn, operation rune, n1 in
 	case 'Q':
 		s.HandleQuery(store, conn, n1, n2)
 	default:
+		conn.Write([]byte("Invalid Operation"))
 		fmt.Print("Invalid Operation\n")
 	}
 }
