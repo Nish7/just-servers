@@ -21,3 +21,13 @@ console.
     - Ex. "01000001" -> would be sending 0x30, 0x31, 0x30, 0x30, 0x30, 0x30, 0x30, 0x31
     - Rather than -> 0x41
     - So How do we send byte form "binary data": `printf '\x41\x00\x01\xE2\x40\xFF\xF3\xF6\x1C' | nc <server-ip> <port>`
+
+- The two's complement system is used in computing because it simplifies the representation and arithmetic operations on signed integers 
+    - postive numbers are converted normally
+    - For negative number are converted and inverted. then add 1
+    - addition circuitlry can be reused for both subtraction
+
+- Convertion to twos complement is really intresting 
+    -  firstly, it assumes the data is in big-endian Format. Which mean MSB comes first
+    -  In Big-Endian, the most significant byte (0x12) is stored at the lowest memory address (first = 0)
+

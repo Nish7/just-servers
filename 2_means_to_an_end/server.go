@@ -51,7 +51,7 @@ func (s *Server) Accept(l net.Listener) {
 
 func (s *Server) HandleConnection(conn net.Conn) {
 	defer conn.Close()
-	buf := make([]byte, 9)
+	buf := make(Request, 9)
 
 	for {
 		_, err := conn.Read(buf)
@@ -65,6 +65,19 @@ func (s *Server) HandleConnection(conn net.Conn) {
 			break
 		}
 
-		fmt.Printf("Recieved (%s): %x\n", conn.RemoteAddr().String(), buf)
+		operation, n1, n2 := buf.Decode()
+		fmt.Printf("Recieved (%s): %x (hex) - operation [%c], n2 [%d] n2 [%d]\n", conn.RemoteAddr().String(), buf, operation, n1, n2)
+		s.HandleRequest(conn, operation, n1, n2)
+	}
+}
+
+func (s *Server) HandleRequest(conn net.Conn, operation rune, n1 int32, n2 int32) {
+	switch operation {
+	case 'I':
+		fmt.Print("Insert Operation!\n")
+	case 'Q':
+		fmt.Print("Query Operation!\n")
+	default:
+		fmt.Print("Invalid Operation\n")
 	}
 }
