@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/binary"
 	"fmt"
 	"io"
 	"net"
@@ -75,15 +76,23 @@ func (s *Server) HandleConnection(conn net.Conn) {
 func (s *Server) HandleRequest(store Store, conn net.Conn, operation rune, n1 int32, n2 int32) {
 	switch operation {
 	case 'I':
-		s.HandleInsert(store, conn.RemoteAddr(), n1, n2)
+		s.HandleInsert(store, n1, n2)
 	case 'Q':
-		fmt.Print("Query Operation!\n")
+		s.HandleQuery(store, conn, n1, n2)
 	default:
 		fmt.Print("Invalid Operation\n")
 	}
 }
 
-func (s *Server) HandleInsert(store Store, remoteAddr net.Addr, timestamp, price int32) {
+func (s *Server) HandleInsert(store Store, timestamp, price int32) {
 	store.Insert(timestamp, price)
 	fmt.Printf("Value Inserted:\n Store = %v\n", store)
+}
+
+func (s *Server) HandleQuery(store Store, conn net.Conn, minTime, maxTime int32) {
+	mean := store.Query(minTime, maxTime)
+	response := make([]byte, 4)
+	binary.BigEndian.PutUint32(response, uint32(mean))
+	fmt.Printf("For the meanTime [%d] and maxTime [%d]. The mean price is = [%d] (dec) - [%x] (hex)\n", minTime, maxTime, mean, response)
+	conn.Write(response)
 }

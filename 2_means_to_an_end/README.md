@@ -1,6 +1,21 @@
 # 2: Means to an End
 https://protohackers.com/problem/2
 
+## Local Test Commands
+This goes through the test sequence in the example session
+```sh
+(
+    printf '\x49\x00\x00\x30\x39\x00\x00\x00\x65'  # I 12345 101
+    printf '\x49\x00\x00\x30\x3a\x00\x00\x00\x66'  # I 12346 102
+    printf '\x49\x00\x00\x30\x3b\x00\x00\x00\x64'  # I 12347 100
+    printf '\x49\x00\x00\xa0\x00\x00\x00\x00\x05'  # I 40960 5
+    printf '\x51\x00\x00\x30\x00\x00\x00\x40\x00'  # Q 12288 16384
+) | nc -4 -q -1 localhost 8082
+```
+
+### Useful Links
+- [NC with Sending Binary Data](https://www.baeldung.com/linux/netcat-sending-binary-data-established-connection) 
+
 - Each client tracks the price of a different asset. Clients send messages to the server that either insert or query the prices.
 - Each connection from a client is a separate session. Each session's data represents a different asset, so each session can only query the data supplied by itself.
 
@@ -39,5 +54,5 @@ console.
     - we make it safe by the use of mutex and sync.map
     - However, i opted for more secure by design approach
     - Rather making a shared map and accessing those, will create a new map per connection and keep track of that.
-    - It would be a connection specific state managed, whenever we drop the go routine we clean up
-    database as well. Which is the intended feature as well
+    - It would be a connection/session specific state managed, whenever we drop the go routine we clean up
+    database as well. Which is an intended feature
