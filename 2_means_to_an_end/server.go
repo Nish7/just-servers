@@ -57,7 +57,7 @@ func (s *Server) HandleConnection(conn net.Conn) {
 
 	for {
 		_, err := conn.Read(request)
-		fmt.Printf("Binary Data %v\n", request)
+		fmt.Printf("Binary Data %b\n", request)
 
 		if err != nil {
 			if err == io.EOF {
