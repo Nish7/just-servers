@@ -22,7 +22,7 @@ func NewServer(addr string) *Server {
 
 func (s *Server) Start() error {
 	l, err := net.Listen("tcp", s.addr)
-	fmt.Printf("Server Listening on %s\n", s.addr)
+	// fmt.Printf("Server Listening on %s\n", s.addr)
 	s.listener = l
 
 	if err != nil {
@@ -39,7 +39,7 @@ func (s *Server) Start() error {
 func (s *Server) Accept(l net.Listener) {
 	for {
 		conn, err := l.Accept()
-		fmt.Printf("New Connection: %s\n", conn.RemoteAddr().String())
+		// fmt.Printf("New Connection: %s\n", conn.RemoteAddr().String())
 
 		if err != nil {
 			fmt.Printf("connection error: %v\n", err)
@@ -57,7 +57,7 @@ func (s *Server) HandleConnection(conn net.Conn) {
 
 	for {
 		err := binary.Read(conn, binary.BigEndian, request)
-		fmt.Printf("Binary Data %b\n", request)
+		// fmt.Printf("Binary Data %b\n", request)
 
 		if err != nil {
 			if err == io.EOF {
@@ -69,7 +69,7 @@ func (s *Server) HandleConnection(conn net.Conn) {
 		}
 
 		operation, n1, n2 := request.Decode()
-		fmt.Printf("Recieved (%s): %x (hex) - operation [%c], n2 [%d] n2 [%d]\n", conn.RemoteAddr().String(), request, operation, n1, n2)
+		// fmt.Printf("Recieved (%s): %x (hex) - operation [%c], n2 [%d] n2 [%d]\n", conn.RemoteAddr().String(), request, operation, n1, n2)
 		s.HandleRequest(store, conn, operation, n1, n2)
 	}
 }
@@ -88,7 +88,7 @@ func (s *Server) HandleRequest(store Store, conn net.Conn, operation rune, n1 in
 
 func (s *Server) HandleInsert(store Store, timestamp, price int32) {
 	store.Insert(timestamp, price)
-	fmt.Printf("Value Inserted:\n Store = %v\n", store)
+	// fmt.Printf("Value Inserted:\n Store = %v\n", store)
 }
 
 func (s *Server) HandleQuery(store Store, conn net.Conn, minTime, maxTime int32) {
@@ -96,6 +96,6 @@ func (s *Server) HandleQuery(store Store, conn net.Conn, minTime, maxTime int32)
 
 	response := make([]byte, 4)
 	binary.BigEndian.PutUint32(response, uint32(mean))
-	fmt.Printf("For the meanTime [%d] and maxTime [%d]. The mean price is = [%d] (dec) - [%x] (hex)\n", minTime, maxTime, mean, response)
+	// fmt.Printf("For the meanTime [%d] and maxTime [%d]. The mean price is = [%d] (dec) - [%x] (hex)\n", minTime, maxTime, mean, response)
 	conn.Write(response)
 }
