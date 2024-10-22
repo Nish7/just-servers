@@ -15,6 +15,7 @@ This goes through the test sequence in the example session
 
 ### Useful Links
 - [NC with Sending Binary Data](https://www.baeldung.com/linux/netcat-sending-binary-data-established-connection) 
+- [Encoding data wth the go Binary Package](https://medium.com/learning-the-go-programming-language/encoding-data-with-the-go-binary-package-42c7c0eb3e73) 
 
 - Each client tracks the price of a different asset. Clients send messages to the server that either insert or query the prices.
 - Each connection from a client is a separate session. Each session's data represents a different asset, so each session can only query the data supplied by itself.
@@ -36,6 +37,16 @@ console.
     - Ex. "01000001" -> would be sending 0x30, 0x31, 0x30, 0x30, 0x30, 0x30, 0x30, 0x31
     - Rather than -> 0x41
     - So How do we send byte form "binary data": `printf '\x41\x00\x01\xE2\x40\xFF\xF3\xF6\x1C' | nc <server-ip> <port>`
+    
+- During my initial testing on the protohacker test suite, it seems to decode the binary incorrectly. 
+I assumed incoming data was the byte form, which is not the case, given it would be coming individualy
+binary bits. 
+    - So if it was sending `10100110000` it was being recieved in this format `100110 0 0 0`. Which is basically still 9 bytes but each individual zeros was being considered as single byte (8 bits)
+    - printf seems to send the binary bits in the byte form to the nc which worked in those given sitations
+    - However, other tcp clients are not neccessarly sending in that byte form
+    - Consdiering that the issue, the bigger question was to how do we even consider in the bit form given TCP handles in byte form on the network level
+    - After lots of googling. Answer to that question lied on the `binary` package. with its usage of `.Read()`
+    - Previous implement of the `conn.Read()` read in the byte form. Which produced incorrect decoding
 
 - The two's complement system is used in computing because it simplifies the representation and arithmetic operations on signed integers 
     - postive numbers are converted normally

@@ -56,7 +56,7 @@ func (s *Server) HandleConnection(conn net.Conn) {
 	store := NewInMemoryStore()
 
 	for {
-		_, err := conn.Read(request)
+		err := binary.Read(conn, binary.BigEndian, request)
 		fmt.Printf("Binary Data %b\n", request)
 
 		if err != nil {
