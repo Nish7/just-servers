@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"internal/runtime/exithook"
 )
 
 type Store interface {
