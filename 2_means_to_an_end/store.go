@@ -25,6 +25,10 @@ func (st *InMemoryStore) Query(minTime, maxTime int32) int32 {
 		}
 	}
 
+	if counter == 0 || sum == 0 {
+		return 0
+	}
+
 	// TODO: consider fractional mean values
 	return sum / counter
 }

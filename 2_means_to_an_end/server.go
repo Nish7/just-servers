@@ -93,6 +93,7 @@ func (s *Server) HandleInsert(store Store, timestamp, price int32) {
 
 func (s *Server) HandleQuery(store Store, conn net.Conn, minTime, maxTime int32) {
 	mean := store.Query(minTime, maxTime)
+
 	response := make([]byte, 4)
 	binary.BigEndian.PutUint32(response, uint32(mean))
 	fmt.Printf("For the meanTime [%d] and maxTime [%d]. The mean price is = [%d] (dec) - [%x] (hex)\n", minTime, maxTime, mean, response)
