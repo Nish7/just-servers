@@ -57,7 +57,7 @@ func (s *Server) HandleConnection(conn net.Conn) {
 
 	for {
 		err := binary.Read(conn, binary.BigEndian, request)
-		// fmt.Printf("Binary Data %b\n", request)
+		fmt.Printf("Binary Data %b\n", request)
 
 		if err != nil {
 			if err == io.EOF {
@@ -88,7 +88,6 @@ func (s *Server) HandleRequest(store Store, conn net.Conn, operation rune, n1 in
 
 func (s *Server) HandleInsert(store Store, timestamp, price int32) {
 	store.Insert(timestamp, price)
-	// fmt.Printf("Value Inserted:\n Store = %v\n", store)
 }
 
 func (s *Server) HandleQuery(store Store, conn net.Conn, minTime, maxTime int32) {

@@ -12,6 +12,8 @@ This goes through the test sequence in the example session
     printf '\x51\x00\x00\x30\x00\x00\x00\x40\x00'  # Q 12288 16384
 ) | nc -4 -q -1 localhost 8082
 ```
+- Note: Handling of the binary data from the nc + printf is different given it sends the data in byte form 
+- while server would be sending in binary protocol format
 
 ### Useful Links
 - [NC with Sending Binary Data](https://www.baeldung.com/linux/netcat-sending-binary-data-established-connection) 
