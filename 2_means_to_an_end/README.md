@@ -67,3 +67,7 @@ binary bits.
     - Rather making a shared map and accessing those, will create a new map per connection and keep track of that.
     - It would be a connection/session specific state managed, whenever we drop the go routine we clean up
     database as well. Which is an intended feature
+
+- Data Size Issue: Handling Sum for calculating mean value required me to use int64 rather than int32.Which caused massive bug on my end when dealing with large number of input insertions and price values casuing overflow
+    - int32 can only handle -2,147,483,648 to 2,147,483,647. and while we do take those as input, the sum
+    of those is greater than int32.

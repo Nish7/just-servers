@@ -1,9 +1,5 @@
 package main
 
-import (
-	"fmt"
-)
-
 type Store interface {
 	Query(minTime, maxTime int32) int32
 	Insert(timestamp, price int32)
@@ -20,11 +16,11 @@ func NewInMemoryStore() *InMemoryStore {
 }
 
 func (st *InMemoryStore) Query(minTime, maxTime int32) int32 {
-	var sum int32 = 0
+	var sum int64 = 0
 	var counter int32 = 0
 	for k, v := range st.store {
 		if k >= minTime && k <= maxTime {
-			sum += v
+			sum += int64(v)
 			counter++
 		}
 	}
@@ -33,10 +29,7 @@ func (st *InMemoryStore) Query(minTime, maxTime int32) int32 {
 		return 0
 	}
 
-	mean := sum / counter
-	fmt.Printf("store: %v\n", st.store)
-	fmt.Printf("sum %d and counter %d = mean [%d]\n", sum, counter, mean)
-	return mean
+	return int32(sum / int64(counter))
 }
 
 func (i *InMemoryStore) Insert(timestamp, price int32) {
