@@ -1,5 +1,7 @@
 package main
 
+import "fmt"
+
 type Store interface {
 	Query(minTime, maxTime int32) int32
 	Insert(timestamp, price int32)
@@ -29,8 +31,9 @@ func (st *InMemoryStore) Query(minTime, maxTime int32) int32 {
 		return 0
 	}
 
-	// TODO: consider fractional mean values
-	return sum / counter
+	mean := sum / counter
+	fmt.Printf("sum %d and counter %d = mean [%d]", sum, counter, mean)
+	return mean
 }
 
 func (i *InMemoryStore) Insert(timestamp, price int32) {
