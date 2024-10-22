@@ -34,7 +34,8 @@ func (st *InMemoryStore) Query(minTime, maxTime int32) int32 {
 	}
 
 	mean := sum / counter
-	fmt.Printf("sum %d and counter %d = mean [%d]", sum, counter, mean)
+	fmt.Printf("store: %v\n", st.store)
+	fmt.Printf("sum %d and counter %d = mean [%d]\n", sum, counter, mean)
 	return mean
 }
 
