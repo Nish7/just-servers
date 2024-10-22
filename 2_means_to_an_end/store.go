@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"internal/runtime/exithook"
+)
 
 type Store interface {
 	Query(minTime, maxTime int32) int32
@@ -37,7 +40,7 @@ func (st *InMemoryStore) Query(minTime, maxTime int32) int32 {
 }
 
 func (i *InMemoryStore) Insert(timestamp, price int32) {
-	// Note: In the case of multiple prices with same timestamp occurs,
-	// it will update with the new one
-	i.store[timestamp] = price
+	if _, exist := i.store[timestamp]; !exist {
+		i.store[timestamp] = price
+	}
 }
