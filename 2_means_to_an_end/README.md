@@ -1,6 +1,10 @@
 # 2: Means to an End
 https://protohackers.com/problem/2
 
+## General Architecture:
+
+![General-Architecture-Means](general-architecture.png)
+
 ## Local Test Commands
 This goes through the test sequence in the example session
 ```sh
@@ -27,49 +31,50 @@ Message Format:
 - 1st byte is indentifier  - in ASCII endcoding
 - 2nd and 3rd segmetns of each 4bytes is in two complement 32 bits integer conversion
 
-Takeaways:
-- Using `buf:=make([]byte, 2048)` vs `bufio.NewReader`. While in the PROTO-1 i used bufio.NewReader, the decison on to use simple buf was made due the nature of the data being received. While in PROTO-1 it was json data
-with new line and general delimeter capabilities. Thus always be mindful of type or struct to use.
-    - Low-level Reading: This method provides more control but requires you to handle all the details—like splitting the incoming data into meaningful chunks (e.g., splitting it into lines, messages, etc.).
+## Takeaways:
+- Using `buf := make([]byte, 2048)` vs `bufio.NewReader`: In the PROTO-1 implementation, I used `bufio.NewReader`, but the decision to use a simple byte `buffer` `([]byte)` in subsequent implementations was made due to the nature of the incoming data. In PROTO-1, the data was JSON, which included new lines and general delimiter capabilities, making `bufio.NewReader` appropriate. However, for the binary data being received later, a low-level byte buffer provided better control.
 
-- Sending binary data is much more complicated rather than processing it. Binary data needs to be send in a 
-byte form rather than ASCII binary strings. Which would happen if you add "100101" in the stdin on the nc 
-console.
-    - Sending the binary strings would simply mean we would be sending the ASCII codes for those digits
-    - Ex. "01000001" -> would be sending 0x30, 0x31, 0x30, 0x30, 0x30, 0x30, 0x30, 0x31
-    - Rather than -> 0x41
-    - So How do we send byte form "binary data": `printf '\x41\x00\x01\xE2\x40\xFF\xF3\xF6\x1C' | nc <server-ip> <port>`
-    
-- During my initial testing on the protohacker test suite, it seems to decode the binary incorrectly. 
-I assumed incoming data was the byte form, which is not the case, given it would be coming individualy
-binary bits. 
-    - So if it was sending `10100110000` it was being recieved in this format `100110 0 0 0`. Which is basically still 9 bytes but each individual zeros was being considered as single byte (8 bits)
-    - printf seems to send the binary bits in the byte form to the nc which worked in those given sitations
-    - However, other tcp clients are not neccessarly sending in that byte form
-    - Consdiering that the issue, the bigger question was to how do we even consider in the bit form given TCP handles in byte form on the network level
-    - After lots of googling. Answer to that question lied on the `binary` package. with its usage of `.Read()`
-    - Previous implement of the `conn.Read()` read in the byte form. Which produced incorrect decoding
+    - Low-level Reading: This method offers more control but requires manually handling all the details, like splitting the incoming data into meaningful chunks (e.g., lines, messages, etc.).
 
-- The two's complement system is used in computing because it simplifies the representation and arithmetic operations on signed integers 
-    - postive numbers are converted normally
-    - For negative number are converted and inverted. then add 1
-    - addition circuitlry can be reused for both subtraction
+- Sending Binary Data: Sending binary data is more complicated than processing it. Binary data must be sent in byte form, not as ASCII binary strings (which would occur if you input 100101 into the nc console).
 
-- Convertion to twos complement is really intresting 
-    -  firstly, it assumes the data is in big-endian Format. Which mean MSB comes first
-    -  In Big-Endian, the most significant byte (0x12) is stored at the lowest memory address (first = 0)
-    - We have currently used binary package to handle the combining the 4 bytes into a 32 bit integer, internallly, it is handled by shifting the bits by its respective position in 32bit size and then using an 
-    OR operator on those.
-    - type casting `int32` on the 4 bytes would handle the conversion for twos complement
+    - Sending the string 100101 would transmit the ASCII codes for those digits.
+    Example: "01000001" (binary string for the letter 'A') would send the bytes 0x30, 0x31, 0x30, 0x30, 0x30, 0x30, 0x30, 0x31 (ASCII for "01000001").
+    Instead, to send the actual byte 0x41 (representing 'A'), you would use:
+    `printf '\x41\x00\x01\xE2\x40\xFF\xF3\xF6\x1C' | nc <server-ip> <port>.`
 
+- Binary Decoding in Protohacker Test Suite: During initial testing, the suite seemed to decode the binary incorrectly. I assumed incoming data was in byte form, but it was actually arriving as individual binary bits.
 
-- Considering Data Race conditions could happen if using a shared map is being accessed by bunch of go routines
-    - we make it safe by the use of mutex and sync.map
-    - However, i opted for more secure by design approach
-    - Rather making a shared map and accessing those, will create a new map per connection and keep track of that.
-    - It would be a connection/session specific state managed, whenever we drop the go routine we clean up
-    database as well. Which is an intended feature
+    - For instance, if the client sent 10100110000, it was received as 100110 0 0 0, which resulted in 9 bytes, but each zero was interpreted as a single byte (8 bits).
+    printf sends binary bits in byte form to nc, which worked in those situations.
+    - However, not all TCP clients send data in byte form.
+    The main issue was how to handle data at the bit level, given that TCP transmits data in byte form on the network level.
+    - After thorough research, the solution was found in the encoding/binary package and its Read() method.
+    The previous implementation of `conn.Read()` read in byte form, leading to incorrect decoding.
 
-- Data Size Issue: Handling Sum for calculating mean value required me to use int64 rather than int32.Which caused massive bug on my end when dealing with large number of input insertions and price values casuing overflow
-    - int32 can only handle -2,147,483,648 to 2,147,483,647. and while we do take those as input, the sum
-    of those is greater than int32.
+- Two's Complement System: The two's complement system is used in computing because it simplifies the representation and arithmetic operations on signed integers:
+
+    - Positive numbers are converted normally.
+    Negative numbers are converted by inverting the bits and adding 1.
+    This allows the same addition circuitry to be reused for both addition and subtraction.
+
+- Conversion to Two's Complement:
+    - This is particularly interesting because it assumes the data is in big-endian format, meaning the most significant byte (MSB) comes first.
+    In big-endian systems, the most significant byte (e.g., 0x12) is stored at the lowest memory address.
+    - I used the binary package to handle combining 4 bytes into a 32-bit integer. Internally, it shifts the bits to their respective positions in the 32-bit size, then applies the OR operator.
+    Type casting the result to int32 automatically handles the conversion to two's complement.
+
+- Avoiding Data Races: Data races could occur when a shared map is accessed by multiple goroutines.
+    - You can prevent this by using a mutex or sync.Map.
+    - However, I opted for a more secure-by-design approach:
+    - Instead of sharing a map across connections, I create a new map per connection, tracking the connection-specific state.
+    - When a connection ends (and the corresponding goroutine exits), the session-specific state is cleaned up. This was an intentional design feature.
+
+- Handling Large Data (Data Size Issue): When calculating the sum for determining the mean value, I had to switch from int32 to int64. This solved a significant bug when dealing with large numbers of input insertions and price values, which had caused an overflow.
+    - int32 can only handle values in the range of -2,147,483,648 to 2,147,483,647. While inputs fit within this range, the sum of these values often exceeded int32 limits, leading to overflow errors.
+
+# Further Improvements
+
+- More use of go bench functionality
+- Unit Tests
+- Improved Logging and way to disable in production cases
