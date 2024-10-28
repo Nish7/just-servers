@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log"
 	"net"
+	"strings"
 	"unicode"
 )
 
@@ -58,22 +59,28 @@ func (s *Server) HandleConnection(conn net.Conn) {
 
 	conn.Write([]byte("Welcome to budgetchat! What shall I call you?\n"))
 	scanner := bufio.NewScanner(conn)
-	nickname, err := s.JoinRequest(scanner)
+	nickname, err := s.joinRequest(scanner)
 
 	if err != nil {
 		log.Printf("Error: %v", err)
 		return
 	}
 
-	// TOOD: Presence Notification
+	s.presenceNotification(conn)
+
+	s.users[nickname] = conn
 
 	// TODO: User Join Broadcast
 
 	// TODO: defer leave user
-	log.Printf("Welcome %s!", nickname)
+	log.Printf("%s joined the room", nickname)
+
+	for scanner.Scan() {
+		log.Printf("Recieved: %s", scanner.Text())
+	}
 }
 
-func (s *Server) JoinRequest(scanner *bufio.Scanner) (nickname string, err error) {
+func (s *Server) joinRequest(scanner *bufio.Scanner) (nickname string, err error) {
 	ok := scanner.Scan()
 
 	if !ok {
@@ -100,4 +107,16 @@ func (s *Server) JoinRequest(scanner *bufio.Scanner) (nickname string, err error
 	}
 
 	return inputName, nil
+}
+
+func (s *Server) presenceNotification(conn net.Conn) {
+	var roomMembers []string
+	for key := range s.users {
+		roomMembers = append(roomMembers, key)
+	}
+
+	if len(roomMembers) > 0 {
+		nicknames := strings.Join(roomMembers, ", ")
+		conn.Write([]byte("> the room contains: " + nicknames + "\n"))
+	}
 }
