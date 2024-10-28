@@ -13,14 +13,14 @@ type Server struct {
 	quitch   chan struct{}
 	listener net.Listener
 	addr     string
-	users    map[string]net.Conn
+	userMap  *UserMap
 }
 
 func NewServer(addr string) *Server {
 	return &Server{
-		quitch: make(chan struct{}),
-		addr:   addr,
-		users:  make(map[string]net.Conn),
+		quitch:  make(chan struct{}),
+		addr:    addr,
+		userMap: NewUsersMap(),
 	}
 }
 
@@ -67,8 +67,7 @@ func (s *Server) HandleConnection(conn net.Conn) {
 	}
 
 	s.presenceNotification(conn)
-
-	s.users[nickname] = conn
+	s.userMap.AddUser(nickname, conn)
 
 	// TODO: User Join Broadcast
 
@@ -102,7 +101,7 @@ func (s *Server) joinRequest(scanner *bufio.Scanner) (nickname string, err error
 	}
 
 	// check if the name is already taken
-	if _, ok := s.users[inputName]; ok {
+	if _, ok := s.userMap.getConnection(nickname); ok {
 		return "", errors.New("Name already taken")
 	}
 
@@ -110,10 +109,7 @@ func (s *Server) joinRequest(scanner *bufio.Scanner) (nickname string, err error
 }
 
 func (s *Server) presenceNotification(conn net.Conn) {
-	var roomMembers []string
-	for key := range s.users {
-		roomMembers = append(roomMembers, key)
-	}
+	roomMembers := s.userMap.GetNicknames()
 
 	if len(roomMembers) > 0 {
 		nicknames := strings.Join(roomMembers, ", ")
