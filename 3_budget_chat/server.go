@@ -62,7 +62,7 @@ func (s *Server) HandleConnection(conn net.Conn) {
 	nickname, err := s.joinRequest(scanner)
 
 	if err != nil || nickname == "" {
-		log.Printf("Error: %v", err)
+		log.Printf("validation error: %v", err)
 		return
 	}
 
@@ -86,7 +86,7 @@ func (s *Server) HandleConnection(conn net.Conn) {
 	}
 
 	if err := scanner.Err(); err != nil {
-		log.Printf("Error: %v", err)
+		log.Printf("scanner error: %v", err)
 	}
 }
 
