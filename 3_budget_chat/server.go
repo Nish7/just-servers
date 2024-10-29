@@ -69,7 +69,7 @@ func (s *Server) HandleConnection(conn net.Conn) {
 	s.presenceNotification(conn)
 	s.userMap.AddUser(nickname, conn)
 
-	// TODO: User Join Broadcast
+	s.Broadcast(nickname, "> "+nickname+" joined the room")
 
 	// TODO: defer leave user
 	log.Printf("%s joined the room", nickname)
@@ -90,19 +90,19 @@ func (s *Server) joinRequest(scanner *bufio.Scanner) (nickname string, err error
 
 	// check the length of the name
 	if len(inputName) < 1 && len(inputName) > 18 {
-		return "", errors.New("Length of the name is less than 1 or greater than 18")
+		return "", errors.New("length of the name is less than 1 or greater than 18")
 	}
 
 	// check if the name contains only letters and numbers
 	for _, r := range inputName {
 		if !unicode.IsLetter(r) && !unicode.IsDigit(r) {
-			return "", errors.New("Invalid Characters")
+			return "", errors.New("invalid Characters")
 		}
 	}
 
 	// check if the name is already taken
 	if _, ok := s.userMap.getConnection(nickname); ok {
-		return "", errors.New("Name already taken")
+		return "", errors.New("name already taken")
 	}
 
 	return inputName, nil
@@ -114,5 +114,14 @@ func (s *Server) presenceNotification(conn net.Conn) {
 	if len(roomMembers) > 0 {
 		nicknames := strings.Join(roomMembers, ", ")
 		conn.Write([]byte("> the room contains: " + nicknames + "\n"))
+	}
+}
+
+func (s *Server) Broadcast(sender string, message string) {
+	for _, key := range s.userMap.GetNicknames() {
+		if key != sender {
+			conn, _ := s.userMap.getConnection(key)
+			conn.Write([]byte(message + "\n"))
+		}
 	}
 }
