@@ -7,6 +7,7 @@ Collection of Networking Server Implementations in Go
 - [0: Smoke Test](https://github.com/Nish7/just-servers/tree/main/0_smoke_test)
 - [1: Prime Time](https://github.com/Nish7/just-servers/tree/main/1_prime_time)
 - [2: Means to an End](https://github.com/Nish7/just-servers/tree/main/2_means_to_an_end)
+- [3: Budget Chat](https://github.com/Nish7/just-servers/tree/main/3_budget_chat)
 
 ### Deployment
 - Deployed a Droplet on DigitalOcean
