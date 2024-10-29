@@ -61,7 +61,7 @@ func (s *Server) HandleConnection(conn net.Conn) {
 	scanner := bufio.NewScanner(conn)
 	nickname, err := s.joinRequest(scanner)
 
-	if err != nil {
+	if err != nil || nickname == "" {
 		log.Printf("Error: %v", err)
 		return
 	}
@@ -90,7 +90,7 @@ func (s *Server) HandleConnection(conn net.Conn) {
 	}
 }
 
-func (s *Server) joinRequest(scanner *bufio.Scanner) (nickname string, err error) {
+func (s *Server) joinRequest(scanner *bufio.Scanner) (string, error) {
 	ok := scanner.Scan()
 
 	if !ok {
@@ -100,8 +100,8 @@ func (s *Server) joinRequest(scanner *bufio.Scanner) (nickname string, err error
 	inputName := strings.TrimSpace(scanner.Text())
 	log.Print("Received name: ", inputName)
 
-	if len(inputName) < 1 && len(inputName) > 18 {
-		return "", errors.New("length of the name is less than 1 or greater than 18")
+	if len(inputName) < 1 || len(inputName) > 18 {
+		return "", errors.New("length of the name is less than 2 or greater than 19")
 	}
 
 	for _, r := range inputName {
@@ -110,7 +110,7 @@ func (s *Server) joinRequest(scanner *bufio.Scanner) (nickname string, err error
 		}
 	}
 
-	if _, ok := s.userMap.getConnection(nickname); ok {
+	if _, ok := s.userMap.getConnection(inputName); ok {
 		return "", errors.New("name already taken")
 	}
 
