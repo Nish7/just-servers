@@ -21,7 +21,7 @@
    - **Pros:** Eliminates the need for mutexes, making it secure by design.
    - **Cons:** More complex to manage.
 
-![General-Architecture](architecture.png | width=500) 
+![General-Architecture](architecture.png) 
 
 ### Useful Links
 - [Go bufio package documentation](https://pkg.go.dev/bufio)
