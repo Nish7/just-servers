@@ -118,11 +118,8 @@ func (s *Server) joinRequest(scanner *bufio.Scanner) (nickname string, err error
 
 func (s *Server) presenceNotification(conn net.Conn) {
 	roomMembers := s.userMap.GetNicknames()
-
-	if len(roomMembers) > 0 {
-		nicknames := strings.Join(roomMembers, ", ")
-		conn.Write([]byte("* the room contains: " + nicknames + "\n"))
-	}
+	nicknames := strings.Join(roomMembers, ", ")
+	conn.Write([]byte("* the room contains: " + nicknames + "\n"))
 }
 
 func (s *Server) Broadcast(sender string, message string) {
