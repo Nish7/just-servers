@@ -105,7 +105,7 @@ func (s *Server) joinRequest(scanner *bufio.Scanner) (string, error) {
 	}
 
 	for _, r := range inputName {
-		if !unicode.IsLetter(r) && !unicode.IsDigit(r) {
+		if !unicode.IsLetter(r) || !unicode.IsDigit(r) {
 			return "", errors.New("invalid characters")
 		}
 	}
