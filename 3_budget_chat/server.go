@@ -98,6 +98,7 @@ func (s *Server) joinRequest(scanner *bufio.Scanner) (nickname string, err error
 	}
 
 	inputName := strings.TrimSpace(scanner.Text())
+	log.Print("Received name: ", inputName)
 
 	if len(inputName) < 1 && len(inputName) > 18 {
 		return "", errors.New("length of the name is less than 1 or greater than 18")
@@ -105,7 +106,7 @@ func (s *Server) joinRequest(scanner *bufio.Scanner) (nickname string, err error
 
 	for _, r := range inputName {
 		if !unicode.IsLetter(r) && !unicode.IsDigit(r) {
-			return "", errors.New("invalid Characters")
+			return "", errors.New("invalid characters")
 		}
 	}
 
