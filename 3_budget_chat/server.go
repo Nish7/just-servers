@@ -69,13 +69,24 @@ func (s *Server) HandleConnection(conn net.Conn) {
 	s.presenceNotification(conn)
 	s.userMap.AddUser(nickname, conn)
 
-	s.Broadcast(nickname, "> "+nickname+" joined the room")
+	defer s.Leave(nickname)
 
-	// TODO: defer leave user
+	s.Broadcast(nickname, "* "+nickname+" joined the room")
 	log.Printf("%s joined the room", nickname)
 
 	for scanner.Scan() {
-		log.Printf("Recieved: %s", scanner.Text())
+		message := strings.TrimSpace(scanner.Text())
+
+		if len(message) > 1000 {
+			conn.Write([]byte("message is too long. Re-send the message\n"))
+			continue
+		}
+
+		s.Broadcast(nickname, "["+nickname+"] "+message)
+	}
+
+	if err := scanner.Err(); err != nil {
+		log.Printf("Error: %v", err)
 	}
 }
 
@@ -86,21 +97,18 @@ func (s *Server) joinRequest(scanner *bufio.Scanner) (nickname string, err error
 		return "", scanner.Err()
 	}
 
-	inputName := scanner.Text()
+	inputName := strings.TrimSpace(scanner.Text())
 
-	// check the length of the name
 	if len(inputName) < 1 && len(inputName) > 18 {
 		return "", errors.New("length of the name is less than 1 or greater than 18")
 	}
 
-	// check if the name contains only letters and numbers
 	for _, r := range inputName {
 		if !unicode.IsLetter(r) && !unicode.IsDigit(r) {
 			return "", errors.New("invalid Characters")
 		}
 	}
 
-	// check if the name is already taken
 	if _, ok := s.userMap.getConnection(nickname); ok {
 		return "", errors.New("name already taken")
 	}
@@ -113,7 +121,7 @@ func (s *Server) presenceNotification(conn net.Conn) {
 
 	if len(roomMembers) > 0 {
 		nicknames := strings.Join(roomMembers, ", ")
-		conn.Write([]byte("> the room contains: " + nicknames + "\n"))
+		conn.Write([]byte("* the room contains: " + nicknames + "\n"))
 	}
 }
 
@@ -124,4 +132,10 @@ func (s *Server) Broadcast(sender string, message string) {
 			conn.Write([]byte(message + "\n"))
 		}
 	}
+}
+
+func (s *Server) Leave(nickname string) {
+	s.userMap.RemoveUser(nickname)
+	s.Broadcast(nickname, "* "+nickname+" left the room")
+	log.Printf("%s left the room", nickname)
 }

@@ -22,6 +22,12 @@ func (um *UserMap) AddUser(nickname string, conn net.Conn) {
 	um.mu.Unlock()
 }
 
+func (um *UserMap) RemoveUser(nickname string) {
+	um.mu.Lock()
+	delete(um.userMap, nickname)
+	um.mu.Unlock()
+}
+
 func (um *UserMap) GetNicknames() []string {
 	var roomMembers []string
 	um.mu.Lock()
