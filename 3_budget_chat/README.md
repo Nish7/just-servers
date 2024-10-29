@@ -1,26 +1,32 @@
-# 2: Budget Chat
-https://protohackers.com/problem/3
+# 3: Budget Chat  
+[Protohackers - Budget Chat Problem](https://protohackers.com/problem/3)
 
 ## Design
 
-- Design consideration is big things:
-- There 3 major design consideration that were taken
-1. Having a simple handle connection design, where each request and connection is handled wihin the handleConnection handler
-    - pros: simple
-    - cons: have to manage client map and use of mutex
-2. Having a event based strucutre. There are 3 types of event. Join, Leave and Message. There is a single channgel to handle the each events and an event dispatcher will route to a specific handler to handle each type of event
-    - pros: can be expanded with more events; 
-    - cons: little bit overkill for a simple application; use of  mutex
-3. Even more aggresive, event based structure where each client has its own channel, each client its own consumption and writing. There is a common broadcaster and broadcast channel which handles routing and deciding whihch channel/user it should go to.
-    - pros: no more handling of mutex; secure by design 
-    - cons: way much more complicated to manage. 
+- **Key Design Considerations:**
+  Three main design approaches were considered for handling connections and events:
 
+### 1. Simple Connection Handling
+   - **Design:** Use a single `handleConnection` function to handle each request and connection.
+   - **Pros:** Straightforward implementation.
+   - **Cons:** Requires managing a client map and using mutexes to prevent data races.
 
-![General-Architecture-Means](general-architecture.png)
+### 2. Event-Based Architecture
+   - **Design:** Implement an event-driven structure with three primary event types: `Join`, `Leave`, and `Message`. A single channel processes these events, and an event dispatcher routes each event type to its respective handler.
+   - **Pros:** Flexible for future expansion with additional event types.
+   - **Cons:** Adds complexity for a simple application and requires mutexes for concurrency control.
 
-## Local Test Commands
+### 3. Aggressive Event-Based Structure
+   - **Design:** Each client has its own channel for receiving and sending messages. A common broadcaster with a central broadcast channel handles routing and determining the target channel/user for each message.
+   - **Pros:** Eliminates the need for mutexes, making it secure by design.
+   - **Cons:** More complex to manage.
+
+![General-Architecture](architecture.png | width=500) 
 
 ### Useful Links
+- [Go bufio package documentation](https://pkg.go.dev/bufio)
 
-
-## Takeaways:
+## Takeaways
+- **Data Race Prevention:** Always consider data races (e.g., `sync.Mutex`).
+- **Centralized Mutex Handling:** Abstract mutex usage in a centralized location to avoid deadlocks and unlock errors.
+- **Buffered I/O vs. Manual Buffer:** Decide between `Scanner` and manual buffer implementation with `Read()`. In this case, using `bufio.Scanner` was appropriate since ASCII character delimiters allowed efficient buffered I/O for reading from the connection.
