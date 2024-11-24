@@ -1,5 +1,5 @@
 # just-servers 
-Collection of Networking Server Implementations in Go
+Collection of Networking Server Implementations in Pure Go
 
 ## Challenges
 [Protohacker Challenges](https://protohackers.co)
@@ -11,16 +11,32 @@ Collection of Networking Server Implementations in Go
 - [4: Unusual Database Program](https://github.com/Nish7/just-servers/tree/main/4_unusual_database_program)
 
 ### Deployment
-- Deployed a Droplet on DigitalOcean
-- Specs: 1vCPU and 1GB Disk
+Deployed a Droplet (1vCPU and 1GB Disk) on DigitalOcean
 
 Steps:
-1. `ssh root@<your-droplet-ip>`
-2. `wget https://golang.org/dl/go1.20.3.linux-amd64.tar.gz`
-3. `sudo tar -C /usr/local -xzf go1.20.3.linux-amd64.tar.gz`
-4. `export PATH=$PATH:/usr/local/go/bin`
-5. `source ~/.profile`
-6. `go version`
-7. `git clone https://github.com/username/your-tcp-server.git`
-8. `cd /path/to/tcp-server && go build -o tcp-server`
-9. `./tcp-server &`
+```sh
+# SSH into your droplet
+$ ssh root@<your-droplet-ip>
+
+# Download the Go binary
+$ wget https://golang.org/dl/go1.20.3.linux-amd64.tar.gz
+
+# Extract and install Go
+$ sudo tar -C /usr/local -xzf go1.20.3.linux-amd64.tar.gz
+
+# Add Go to the PATH
+$ export PATH=$PATH:/usr/local/go/bin
+$ source ~/.profile
+
+# Verify the Go installation
+$ go version
+
+# Clone your TCP server repository
+$ git clone https://github.com/username/your-tcp-server.git
+
+# Build the TCP server
+$ cd /path/to/tcp-server && go build -o tcp-server
+
+# Run the TCP server in the background
+$ ./tcp-server &
+```
