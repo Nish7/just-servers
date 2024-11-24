@@ -1,10 +1,6 @@
 # 4: Unusual Database Program 
 [Protohackers - Unusual Database Program](https://protohackers.com/problem/4)
 
-## Design
-
-![General-Architecture](architecture.png | width=500) 
-
 ### Useful Links
 - https://www.ietf.org/rfc/rfc768.txt - UDP RFC768
 
