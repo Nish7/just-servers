@@ -54,7 +54,7 @@ func (s *Server) Start() error {
 			break
 		}
 
-		req := strings.Trim(string(buf[:n]), "\n")
+		req := string(buf[:n])
 		Log(fmt.Sprintf("Request: %s", req), addr)
 
 		if before, after, found := strings.Cut(req, "="); found {
