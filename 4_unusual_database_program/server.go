@@ -10,15 +10,13 @@ import (
 )
 
 type Server struct {
-	quitch chan struct{}
-	addr   string
-	store  map[string]string
+	addr  string
+	store map[string]string
 }
 
 func NewServer(addr string) *Server {
 	return &Server{
-		quitch: make(chan struct{}),
-		addr:   addr,
+		addr: addr,
 		store: map[string]string{
 			"version": "1.0",
 		},
