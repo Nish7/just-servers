@@ -55,7 +55,7 @@ func (s *Server) Start() error {
 		}
 
 		req := strings.Trim(string(buf[:n]), "\n")
-		Log(fmt.Sprintf("Request: %s\n", req), addr)
+		Log(fmt.Sprintf("Request: %s", req), addr)
 
 		if before, after, found := strings.Cut(req, "="); found {
 			Log(fmt.Sprintf("Insert Operation: key : %s and value %s", before, after), addr)
@@ -72,13 +72,13 @@ func (s *Server) Start() error {
 			val, err := s.RetrieveOp(req)
 
 			if err != nil {
-				res := req + "=" + "\n"
+				res := req + "="
 				Log(fmt.Sprintf("Error: %e - Response: %s", err, res), addr)
 				conn.WriteTo([]byte(res), addr)
 				continue
 			}
 
-			res := req + "=" + val + "\n"
+			res := req + "=" + val
 			Log("Response: "+res, addr)
 			conn.WriteTo([]byte(res), addr)
 		}
@@ -107,5 +107,5 @@ func (s *Server) RetrieveOp(key string) (string, error) {
 }
 
 func Log(p string, addr net.Addr) {
-	log.Printf("[%s] %s", addr.String(), p)
+	log.Printf("[%s] %s\n", addr.String(), p)
 }
