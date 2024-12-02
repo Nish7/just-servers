@@ -126,6 +126,7 @@ func rewriteAddr(message string) string {
 func isBogusCoinAddr(word string) bool {
 	// check if the word has first char as 7
 	// check if the word is of len >= 26 and less <= 35
+	word = strings.TrimSpace(word)
 	if len(word) < 26 || len(word) > 35 || word[0] != '7' {
 		return false
 	}
