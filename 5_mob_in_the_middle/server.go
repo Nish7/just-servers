@@ -114,13 +114,13 @@ func (s *Server) HandleServerConn(serverconn net.Conn, clientconn net.Conn) {
 func rewriteAddr(message string) string {
 	words := strings.Split(message, " ")
 
-	for i, word := range words {
+	for _, word := range words {
 		if isBogusCoinAddr(word) {
-			words[i] = BOGUS_COIN_ADDR
+			message = strings.ReplaceAll(message, word, BOGUS_COIN_ADDR)
 		}
 	}
 
-	return strings.Join(words, " ")
+	return message
 }
 
 func isBogusCoinAddr(word string) bool {
