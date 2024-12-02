@@ -51,7 +51,7 @@ func (s *Server) Accept() {
 			Log(fmt.Sprintf("Connection Error: %v\n", err), conn.RemoteAddr())
 		}
 
-		Log("Connected!\n", conn.RemoteAddr())
+		Log("Client Connected!\n", conn.RemoteAddr())
 		go s.HandleClientConn(conn)
 	}
 }
@@ -115,8 +115,9 @@ func rewriteAddr(message string) string {
 	words := strings.Split(message, " ")
 
 	for _, word := range words {
-		if isBogusCoinAddr(word) {
-			message = strings.ReplaceAll(message, strings.TrimSuffix(word, "\n"), BOGUS_COIN_ADDR)
+		trimmedWord := strings.TrimSuffix(word, "\n")
+		if isBogusCoinAddr(trimmedWord) {
+			message = strings.ReplaceAll(message, trimmedWord, BOGUS_COIN_ADDR)
 		}
 	}
 
@@ -124,8 +125,6 @@ func rewriteAddr(message string) string {
 }
 
 func isBogusCoinAddr(word string) bool {
-	// check if the word has first char as 7
-	// check if the word is of len >= 26 and less <= 35
 	word = strings.TrimSuffix(word, "\n")
 	if len(word) < 27 || len(word) > 35 || word[0] != '7' {
 		return false
