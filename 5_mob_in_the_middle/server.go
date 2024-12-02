@@ -83,7 +83,7 @@ func (s *Server) HandleClientConn(conn net.Conn) {
 			break
 		}
 
-		Log(fmt.Sprintf("Recieved from Client: %s\n", line), conn.RemoteAddr())
+		Log(fmt.Sprintf("Recieved from Client: %q\n", line), conn.RemoteAddr())
 		text := rewriteAddr(line)
 
 		_, err = serverconn.Write([]byte(text))
@@ -91,7 +91,7 @@ func (s *Server) HandleClientConn(conn net.Conn) {
 			Log(fmt.Sprintf("Write Error: cannot send to the server %v\n", err), conn.RemoteAddr())
 		}
 
-		Log(fmt.Sprintf("Sent: %s\n", text), conn.RemoteAddr())
+		Log(fmt.Sprintf("Sent: %q\n", text), conn.RemoteAddr())
 	}
 }
 
@@ -100,12 +100,12 @@ func (s *Server) HandleServerConn(serverconn net.Conn, clientconn net.Conn) {
 	scanner := bufio.NewScanner(serverconn)
 
 	for scanner.Scan() {
-		Log(fmt.Sprintf("Recieved from Server: %s", scanner.Text()), serverconn.RemoteAddr())
+		Log(fmt.Sprintf("Recieved from Server: %q\n", scanner.Text()), clientconn.RemoteAddr())
 		text := rewriteAddr(scanner.Text())
 
 		_, err := clientconn.Write([]byte(text + "\n"))
 		if err != nil {
-			Log(fmt.Sprintf("Write Error: cannot send to the client %v", err), serverconn.RemoteAddr())
+			Log(fmt.Sprintf("Write Error: cannot send to the client %v", err), clientconn.RemoteAddr())
 		}
 	}
 }
@@ -116,7 +116,7 @@ func rewriteAddr(message string) string {
 
 	for _, word := range words {
 		if isBogusCoinAddr(word) {
-			message = strings.ReplaceAll(message, word, BOGUS_COIN_ADDR)
+			message = strings.ReplaceAll(message, strings.TrimSuffix(word, "\n"), BOGUS_COIN_ADDR)
 		}
 	}
 
