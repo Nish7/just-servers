@@ -107,7 +107,6 @@ func rewriteAddr(message string) string {
 	for i, word := range words {
 		if isBogusCoinAddr(word) {
 			words[i] = BOGUS_COIN_ADDR
-			break
 		}
 	}
 
