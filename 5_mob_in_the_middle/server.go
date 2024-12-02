@@ -71,12 +71,22 @@ func (s *Server) HandleClientConn(conn net.Conn) {
 	defer serverconn.Close()
 
 	// send all incoming messages from client to the chat server
-	scanner := bufio.NewScanner(conn)
-	for scanner.Scan() {
-		Log(fmt.Sprintf("Recieved from Client: %s\n", scanner.Text()), conn.RemoteAddr())
-		text := rewriteAddr(scanner.Text())
+	reader := bufio.NewReader(conn)
+	for {
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			if err.Error() == "EOF" {
+				fmt.Printf("Client disconnected: %s\n", conn.RemoteAddr())
+			} else {
+				fmt.Printf("Error reading from client %s: %s\n", conn.RemoteAddr(), err)
+			}
+			break
+		}
 
-		_, err := serverconn.Write([]byte(text + "\n"))
+		Log(fmt.Sprintf("Recieved from Client: %s\n", line), conn.RemoteAddr())
+		text := rewriteAddr(line)
+
+		_, err = serverconn.Write([]byte(text))
 		if err != nil {
 			Log(fmt.Sprintf("Write Error: cannot send to the server %v\n", err), conn.RemoteAddr())
 		}
