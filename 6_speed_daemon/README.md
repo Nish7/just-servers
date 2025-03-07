@@ -3,8 +3,8 @@
 
 Tasks:
 - [x] Handle TCP Connection
-- [ ] Decode Binary Messages
-- [ ] Manage Client State
+- [x] Decode Binary Messages
+- [x] Manage Client State
 - [ ] Detect Speed Limits
 - [ ] Issue Tickets and Manage Tickets
 - [ ] Heartbeat Scheduler 

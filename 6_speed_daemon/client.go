@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"net"
@@ -24,6 +25,10 @@ func (c *TCPClient) Connect() error {
 	}
 	c.conn = conn
 	return nil
+}
+
+func (c *TCPClient) Disconnect() {
+	c.conn.Close()
 }
 
 func (c *TCPClient) SendPlateRecord(plate Plate) {
@@ -64,6 +69,33 @@ func (c *TCPClient) SendIAMCamera(cam Camera) {
 	fmt.Printf("Client -> Sent CameraRequest: %v - hex[% X]\n", cam, msg)
 }
 
-func (c *TCPClient) Disconnect() {
-	c.conn.Close()
+func (c *TCPClient) SendIAMDispatcher(disp Dispatcher) {
+	var buf bytes.Buffer
+
+	if err := binary.Write(&buf, binary.BigEndian, byte(IAMDISPATCHER_REQ)); err != nil {
+		fmt.Printf("Error writing request type: %v\n", err)
+		return
+	}
+
+	// Write length of roads slice
+	if err := binary.Write(&buf, binary.BigEndian, uint8(len(disp.roads))); err != nil {
+		fmt.Printf("Error writing roads length: %v\n", err)
+		return
+	}
+
+	// Write the roads slice directly
+	if err := binary.Write(&buf, binary.BigEndian, disp.roads); err != nil {
+		fmt.Printf("Error writing roads: %v\n", err)
+		return
+	}
+
+	// Send the buffer over the connection
+	msg := buf.Bytes()
+	_, err := c.conn.Write(msg)
+	if err != nil {
+		fmt.Printf("Error sending IAmDispatcher message\n")
+		return
+	}
+
+	fmt.Printf("Client -> Sent DispatcherRequest: %v - hex[% X]\n", disp, msg)
 }

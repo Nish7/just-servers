@@ -9,19 +9,21 @@ import (
 )
 
 type Server struct {
-	quitch         chan struct{}
-	listener       net.Listener
-	addr           string
-	store          Store
-	active_cameras map[net.Conn]Camera
+	quitch             chan struct{}
+	listener           net.Listener
+	addr               string
+	store              Store
+	active_cameras     map[net.Conn]Camera
+	active_dispatchers map[net.Conn]Dispatcher
 }
 
 func NewServer(addr string, store Store) *Server {
 	return &Server{
-		quitch:         make(chan struct{}),
-		addr:           addr,
-		store:          store,
-		active_cameras: make(map[net.Conn]Camera),
+		quitch:             make(chan struct{}),
+		addr:               addr,
+		store:              store,
+		active_cameras:     make(map[net.Conn]Camera),
+		active_dispatchers: make(map[net.Conn]Dispatcher),
 	}
 }
 
@@ -88,7 +90,23 @@ func (s *Server) HandleConnection(conn net.Conn) {
 
 			client = CAMERA
 			s.HandleCameraReq(conn, d)
-			defer s.Cleanup(conn, CAMERA)
+			defer s.Cleanup(conn, client)
+		case IAMDISPATCHER_REQ:
+			if client != -1 {
+				fmt.Printf("Connection already setup")
+				continue
+			}
+
+			d, err := ParseDispatcherRecord(reader)
+			if err != nil {
+				log.Printf("Failed to parse request %v", err)
+				return
+			}
+
+			client = DISPATCHER
+			s.HandleDispatcherReq(conn, d)
+			defer s.Cleanup(conn, client)
+
 		case PLATE_REQ:
 			if client != CAMERA {
 				log.Printf("Invalid Client. Expected Camera")
@@ -107,15 +125,21 @@ func (s *Server) HandleConnection(conn net.Conn) {
 	}
 }
 
+func (s *Server) HandleDispatcherReq(conn net.Conn, req Dispatcher) error {
+	log.Printf("IAMDISPATCHER_REQ: Recived %v\n", req)
+	s.active_dispatchers[conn] = req
+	return nil
+}
+
 func (s *Server) HandleCameraReq(conn net.Conn, req Camera) error {
-	fmt.Printf("IAMCAMERA: Recived %v\n", req)
+	log.Printf("IAMCAMERA: Recived %v\n", req)
 	s.active_cameras[conn] = req
 	return nil
 }
 
 func (s *Server) HandlePlateReq(conn net.Conn, req Plate) error {
 	camera := s.active_cameras[conn]
-	fmt.Printf("Plate Record Receieved: %v from Camera %v\n", req, camera)
+	log.Printf("Plate Record Receieved: %v from Camera %v\n", req, camera)
 	s.store.AddPlateRecord(camera, req)
 	return nil
 }

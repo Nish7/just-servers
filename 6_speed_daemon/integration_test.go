@@ -38,6 +38,15 @@ func TestPlateRequest(t *testing.T) {
 	time.Sleep(500 * time.Millisecond) // test ended before verifying
 }
 
+func TestDispatcherRequest(t *testing.T) {
+	client := NewTCPClient(addr)
+	client.Connect()
+	defer client.Disconnect()
+
+	client.SendIAMDispatcher(Dispatcher{[]uint16{66}})
+	time.Sleep(500 * time.Millisecond) // test ended before verifying
+}
+
 func TestCameraRequest(t *testing.T) {
 	client := NewTCPClient(addr)
 	client.Connect()

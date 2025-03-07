@@ -10,14 +10,16 @@ import (
 type MsgType byte
 
 const (
-	IAMCAMERA_REQ MsgType = 0x80
-	PLATE_REQ     MsgType = 0x20
+	IAMCAMERA_REQ     MsgType = 0x80
+	IAMDISPATCHER_REQ MsgType = 0x81
+	PLATE_REQ         MsgType = 0x20
 )
 
 type Client int
 
 const (
-	CAMERA Client = iota
+	CAMERA = iota
+	DISPATCHER
 )
 
 type Camera struct {
@@ -29,6 +31,39 @@ type Camera struct {
 type Plate struct {
 	Plate     string
 	Timestamp uint32
+}
+
+type Dispatcher struct {
+	roads []uint16
+}
+
+func ParseDispatcherRecord(reader *bufio.Reader) (Dispatcher, error) {
+	dispatcher := Dispatcher{}
+	// read the plate value
+	roads, err := ParseIntSlice(reader)
+	if err != nil {
+		return dispatcher, fmt.Errorf("error reading dispatcher roads %w", err)
+	}
+
+	dispatcher.roads = roads
+	return dispatcher, nil
+}
+
+func ParseIntSlice(reader *bufio.Reader) ([]uint16, error) {
+	// Read length byte
+	var lengthByte byte
+	if err := binary.Read(reader, binary.BigEndian, &lengthByte); err != nil {
+		return nil, fmt.Errorf("error reading length: %w", err)
+	}
+	sliceLen := int(lengthByte)
+
+	// Read the uint16 slice directly
+	result := make([]uint16, sliceLen)
+	if err := binary.Read(reader, binary.BigEndian, result); err != nil {
+		return nil, fmt.Errorf("error reading uint16 slice: %w", err)
+	}
+
+	return result, nil
 }
 
 func ParseString(reader *bufio.Reader) (string, error) {
