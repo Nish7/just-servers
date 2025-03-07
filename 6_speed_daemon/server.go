@@ -9,15 +9,19 @@ import (
 )
 
 type Server struct {
-	quitch   chan struct{}
-	listener net.Listener
-	addr     string
+	quitch         chan struct{}
+	listener       net.Listener
+	addr           string
+	store          Store
+	active_cameras map[net.Conn]Camera
 }
 
-func NewServer(addr string) *Server {
+func NewServer(addr string, store Store) *Server {
 	return &Server{
-		quitch: make(chan struct{}),
-		addr:   addr,
+		quitch:         make(chan struct{}),
+		addr:           addr,
+		store:          store,
+		active_cameras: make(map[net.Conn]Camera),
 	}
 }
 
@@ -53,8 +57,9 @@ func (s *Server) Accept() {
 
 func (s *Server) HandleConnection(conn net.Conn) {
 	defer conn.Close()
-
+	var client Client = -1
 	reader := bufio.NewReader(conn)
+
 	for {
 		msgType, err := reader.ReadByte()
 		if err == io.EOF {
@@ -69,18 +74,59 @@ func (s *Server) HandleConnection(conn net.Conn) {
 
 		// request handler
 		switch MsgType(msgType) {
-		case CAMERA_REQ:
-			err := HandleRequest(reader, s.handleCameraRequest)
-			if err != nil {
-				fmt.Printf("Error Handling Request: %x", err)
+		case IAMCAMERA_REQ:
+			if client != -1 {
+				fmt.Printf("Connection already setup")
+				continue
 			}
+
+			d, err := ParseRequest[Camera](reader)
+			if err != nil {
+				log.Printf("Failed to parse request %v", err)
+				return
+			}
+
+			client = CAMERA
+			s.HandleCameraReq(conn, d)
+			defer s.Cleanup(conn, CAMERA)
+		case PLATE_REQ:
+			if client != CAMERA {
+				log.Printf("Invalid Client. Expected Camera")
+			}
+
+			d, err := ParseRequest[Plate](reader)
+			if err != nil {
+				log.Printf("Failed to parse Request %v", err)
+				return
+			}
+
+			s.HandlePlateReq(conn, d)
 		default:
-			fmt.Printf("Unknown message type: %x\n", msgType)
+			fmt.Printf("Unknown message type: %X\n", msgType)
 		}
 	}
 }
 
-func (s *Server) handleCameraRequest(req CameraRequest) error {
-	fmt.Printf("Handling Camera Request %v\n", req)
+func (s *Server) HandleCameraReq(conn net.Conn, req Camera) error {
+	fmt.Printf("IAMCAMERA: Recived %v\n", req)
+	s.active_cameras[conn] = req
+	return nil
+}
+
+func (s *Server) HandlePlateReq(conn net.Conn, req Plate) error {
+	camera := s.active_cameras[conn]
+	fmt.Printf("Plate Record Receieved: %v from Camera %v", req, camera)
+	s.store.AddPlateRecord(camera, req)
+	return nil
+}
+
+func (s *Server) Cleanup(conn net.Conn, client Client) error {
+	switch client {
+	case CAMERA:
+		delete(s.active_cameras, conn)
+	default:
+		return fmt.Errorf("Invalid Client type")
+	}
+
 	return nil
 }

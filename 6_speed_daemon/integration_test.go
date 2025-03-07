@@ -1,10 +1,7 @@
 package main
 
 import (
-	"encoding/binary"
-	"fmt"
 	"log"
-	"net"
 	"os"
 	"testing"
 	"time"
@@ -15,7 +12,8 @@ var addr string = ":8080"
 
 func TestMain(t *testing.M) {
 	// setup the server
-	testServer = NewServer(addr)
+	store := NewInMemoryStore()
+	testServer = NewServer(addr, store)
 
 	go func() {
 		err := testServer.Start()
@@ -29,37 +27,22 @@ func TestMain(t *testing.M) {
 	os.Exit(code)
 }
 
+func TestPlateRequest(t *testing.T) {
+	client := NewTCPClient(addr)
+	client.Connect()
+	defer client.Disconnect()
+
+	client.SendIAMCamera(Camera{20, 80, 100})
+	client.SendPlateRecord(Plate{"UN1X", 1000})
+
+	time.Sleep(500 * time.Millisecond) // test ended before verifying
+}
+
 func TestCameraRequest(t *testing.T) {
-	conn, err := net.Dial("tcp", addr)
-	if err != nil {
-		fmt.Println("Error connecting to server:", err)
-		return
-	}
-	defer conn.Close()
+	client := NewTCPClient(addr)
+	client.Connect()
+	defer client.Disconnect()
 
-	// Test multiple IAmCamera messages
-	cameras := []struct{ road, mile, limit uint16 }{
-		{66, 100, 60},
-		{123, 8, 60},
-		{368, 1234, 40},
-	}
-
-	for _, cam := range cameras {
-		msg := make([]byte, 7)
-		msg[0] = 0x80
-		binary.BigEndian.PutUint16(msg[1:3], cam.road)
-		binary.BigEndian.PutUint16(msg[3:5], cam.mile)
-		binary.BigEndian.PutUint16(msg[5:7], cam.limit)
-
-		_, err = conn.Write(msg)
-
-		if err != nil {
-			fmt.Println("Error sending IAmCamera message")
-			return
-		}
-
-		fmt.Printf("Client -> Sent CameraRequest: %x\n", msg)
-	}
-
+	client.SendIAMCamera(Camera{66, 100, 60})
 	time.Sleep(500 * time.Millisecond) // test ended before verifying
 }
