@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"encoding/binary"
 	"fmt"
 	"io"
 	"log"
@@ -69,37 +68,19 @@ func (s *Server) HandleConnection(conn net.Conn) {
 		}
 
 		// request handler
-		switch msgType {
-		case 0x80:
-			err = s.HandleCameraRequest(reader)
+		switch MsgType(msgType) {
+		case CAMERA_REQ:
+			err := HandleRequest(reader, s.handleCameraRequest)
 			if err != nil {
-				fmt.Println("Error handling CameraRequest", err)
-				return
+				fmt.Printf("Error Handling Request: %x", err)
 			}
 		default:
-			fmt.Printf("Unknown message type: %x echoing back\n", msgType)
+			fmt.Printf("Unknown message type: %x\n", msgType)
 		}
 	}
 }
 
-func (s *Server) HandleCameraRequest(reader *bufio.Reader) error {
-	// Expect 6 more byte: 3 x u16 (road, mile, limit)
-	data := make([]byte, 6)
-	n, err := reader.Read(data)
-
-	if err != nil {
-		return fmt.Errorf("failed to read Camera Request %v", err)
-	}
-
-	if n != 6 {
-		return fmt.Errorf("imcomplete CameraRequest %v", err)
-	}
-
-	// parse the big-endian u16 fields
-	road := binary.BigEndian.Uint16(data[0:2])
-	mile := binary.BigEndian.Uint16(data[2:4])
-	limit := binary.BigEndian.Uint16(data[4:6])
-
-	fmt.Printf("CameraRequest Received: Road=%d, mile=%d, limit=%d\n", road, mile, limit)
+func (s *Server) handleCameraRequest(req CameraRequest) error {
+	fmt.Printf("Handling Camera Request %v\n", req)
 	return nil
 }
