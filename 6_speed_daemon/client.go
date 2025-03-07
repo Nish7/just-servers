@@ -27,7 +27,7 @@ func (c *TCPClient) Connect() error {
 }
 
 func (c *TCPClient) SendPlateRecord(plate Plate) {
-	plateBytes := []byte(plate.plate)
+	plateBytes := []byte(plate.Plate)
 	plateLen := len(plateBytes)
 
 	msg := make([]byte, 1+1+plateLen+4)
@@ -36,7 +36,7 @@ func (c *TCPClient) SendPlateRecord(plate Plate) {
 	msg[1] = byte(plateLen)
 
 	copy(msg[2:2+plateLen], plateBytes)
-	binary.BigEndian.PutUint32(msg[2+plateLen:], plate.timestamp)
+	binary.BigEndian.PutUint32(msg[2+plateLen:], plate.Timestamp)
 
 	_, err := c.conn.Write(msg)
 	if err != nil {

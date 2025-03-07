@@ -80,7 +80,7 @@ func (s *Server) HandleConnection(conn net.Conn) {
 				continue
 			}
 
-			d, err := ParseRequest[Camera](reader)
+			d, err := ParseCameraRequest(reader)
 			if err != nil {
 				log.Printf("Failed to parse request %v", err)
 				return
@@ -94,7 +94,7 @@ func (s *Server) HandleConnection(conn net.Conn) {
 				log.Printf("Invalid Client. Expected Camera")
 			}
 
-			d, err := ParseRequest[Plate](reader)
+			d, err := ParsePlateRecord(reader)
 			if err != nil {
 				log.Printf("Failed to parse Request %v", err)
 				return
@@ -115,7 +115,7 @@ func (s *Server) HandleCameraReq(conn net.Conn, req Camera) error {
 
 func (s *Server) HandlePlateReq(conn net.Conn, req Plate) error {
 	camera := s.active_cameras[conn]
-	fmt.Printf("Plate Record Receieved: %v from Camera %v", req, camera)
+	fmt.Printf("Plate Record Receieved: %v from Camera %v\n", req, camera)
 	s.store.AddPlateRecord(camera, req)
 	return nil
 }
