@@ -9,21 +9,21 @@ import (
 )
 
 type Server struct {
-	quitch             chan struct{}
-	listener           net.Listener
-	addr               string
-	store              Store
-	active_cameras     map[net.Conn]Camera
-	active_dispatchers map[net.Conn]Dispatcher
+	quitch      chan struct{}
+	listener    net.Listener
+	addr        string
+	store       Store
+	cameras     map[net.Conn]Camera
+	dispatchers map[net.Conn]Dispatcher
 }
 
 func NewServer(addr string, store Store) *Server {
 	return &Server{
-		quitch:             make(chan struct{}),
-		addr:               addr,
-		store:              store,
-		active_cameras:     make(map[net.Conn]Camera),
-		active_dispatchers: make(map[net.Conn]Dispatcher),
+		quitch:      make(chan struct{}),
+		addr:        addr,
+		store:       store,
+		cameras:     make(map[net.Conn]Camera),
+		dispatchers: make(map[net.Conn]Dispatcher),
 	}
 }
 
@@ -70,7 +70,7 @@ func (s *Server) HandleConnection(conn net.Conn) {
 		}
 
 		if err != nil {
-			log.Printf("Error Reading Connection %e", err)
+			log.Printf("[%s] Error Reading Connection %v", conn.RemoteAddr().String(), err)
 			return
 		}
 
@@ -126,31 +126,36 @@ func (s *Server) HandleConnection(conn net.Conn) {
 }
 
 func (s *Server) HandleDispatcherReq(conn net.Conn, req Dispatcher) error {
-	log.Printf("IAMDISPATCHER_REQ: Recived %v\n", req)
-	s.active_dispatchers[conn] = req
+	log.Printf("[%s] IAMDISPATCHER_REQ: Recived %v\n", conn.RemoteAddr().String(), req)
+	s.dispatchers[conn] = req
 	return nil
 }
 
 func (s *Server) HandleCameraReq(conn net.Conn, req Camera) error {
-	log.Printf("IAMCAMERA: Recived %v\n", req)
-	s.active_cameras[conn] = req
+	log.Printf("[%s] IAMCAMERA: Recived %v\n", conn.RemoteAddr().String(), req)
+	s.cameras[conn] = req
 	return nil
 }
 
-func (s *Server) HandlePlateReq(conn net.Conn, req Plate) error {
-	camera := s.active_cameras[conn]
-	log.Printf("Plate Record Receieved: %v from Camera %v\n", req, camera)
-	s.store.AddPlateRecord(camera, req)
+func (s *Server) HandlePlateReq(conn net.Conn, plate Plate) error {
+	cam := s.cameras[conn]
+	log.Printf("[%s] Plate Record Receieved: %v from Camera %v\n", conn.RemoteAddr().String(), plate, cam)
+
+	observation := Observation{Plate: plate.Plate, Road: cam.Road, Mile: cam.Mile, Timestamp: plate.Timestamp, Limit: cam.Limit}
+
+	s.store.AddObservation(observation)
+	s.HandleSpeedViolations(observation, conn)
 	return nil
 }
 
 func (s *Server) Cleanup(conn net.Conn, client Client) error {
 	switch client {
 	case CAMERA:
-		delete(s.active_cameras, conn)
+		delete(s.cameras, conn)
+	case DISPATCHER:
+		delete(s.dispatchers, conn)
 	default:
 		return fmt.Errorf("Invalid Client type")
 	}
-
 	return nil
 }

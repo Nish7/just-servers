@@ -13,6 +13,7 @@ const (
 	IAMCAMERA_REQ     MsgType = 0x80
 	IAMDISPATCHER_REQ MsgType = 0x81
 	PLATE_REQ         MsgType = 0x20
+	TICKET_RESP       MsgType = 0x21
 )
 
 type Client int
@@ -34,7 +35,7 @@ type Plate struct {
 }
 
 type Dispatcher struct {
-	roads []uint16
+	Roads []uint16
 }
 
 func ParseDispatcherRecord(reader *bufio.Reader) (Dispatcher, error) {
@@ -45,7 +46,7 @@ func ParseDispatcherRecord(reader *bufio.Reader) (Dispatcher, error) {
 		return dispatcher, fmt.Errorf("error reading dispatcher roads %w", err)
 	}
 
-	dispatcher.roads = roads
+	dispatcher.Roads = roads
 	return dispatcher, nil
 }
 
@@ -96,6 +97,32 @@ func ParseCameraRequest(reader *bufio.Reader) (Camera, error) {
 	}
 
 	return data, nil
+}
+
+// used by integration_testing
+func ParseTicket(reader *bufio.Reader) (Ticket, error) {
+	ticket := Ticket{}
+
+	// read the plate value
+	plate, err := ParseString(reader)
+	if err != err {
+		return ticket, fmt.Errorf("error reading plate (str): %w", err)
+	}
+	ticket.Plate = plate
+
+	// Read all the fields
+	err = binary.Read(reader, binary.BigEndian, &ticket.Road)
+	err = binary.Read(reader, binary.BigEndian, &ticket.Mile1)
+	err = binary.Read(reader, binary.BigEndian, &ticket.Timestamp1)
+	err = binary.Read(reader, binary.BigEndian, &ticket.Mile2)
+	err = binary.Read(reader, binary.BigEndian, &ticket.Timestamp2)
+	err = binary.Read(reader, binary.BigEndian, &ticket.Speed)
+
+	if err != nil {
+		return ticket, fmt.Errorf("error reading timestamp: %w", err)
+	}
+
+	return ticket, nil
 }
 
 func ParsePlateRecord(reader *bufio.Reader) (Plate, error) {

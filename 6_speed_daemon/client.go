@@ -9,7 +9,7 @@ import (
 
 type TCPClient struct {
 	address string
-	conn    net.Conn
+	Conn    net.Conn
 }
 
 func NewTCPClient(address string) *TCPClient {
@@ -23,12 +23,12 @@ func (c *TCPClient) Connect() error {
 	if err != nil {
 		return fmt.Errorf("failed to connect to %s: %v", c.address, err)
 	}
-	c.conn = conn
+	c.Conn = conn
 	return nil
 }
 
 func (c *TCPClient) Disconnect() {
-	c.conn.Close()
+	c.Conn.Close()
 }
 
 func (c *TCPClient) SendPlateRecord(plate Plate) {
@@ -43,7 +43,7 @@ func (c *TCPClient) SendPlateRecord(plate Plate) {
 	copy(msg[2:2+plateLen], plateBytes)
 	binary.BigEndian.PutUint32(msg[2+plateLen:], plate.Timestamp)
 
-	_, err := c.conn.Write(msg)
+	_, err := c.Conn.Write(msg)
 	if err != nil {
 		fmt.Printf("Error sending PlateRecord message: %v\n", err)
 		return
@@ -52,6 +52,7 @@ func (c *TCPClient) SendPlateRecord(plate Plate) {
 	fmt.Printf("Client -> Sent PlateRecord: %v - hex[% X]\n", plate, msg)
 }
 
+// TODO: return error as well
 func (c *TCPClient) SendIAMCamera(cam Camera) {
 	msg := make([]byte, 7)
 	msg[0] = byte(IAMCAMERA_REQ)
@@ -59,7 +60,7 @@ func (c *TCPClient) SendIAMCamera(cam Camera) {
 	binary.BigEndian.PutUint16(msg[3:5], cam.Mile)
 	binary.BigEndian.PutUint16(msg[5:7], cam.Limit)
 
-	_, err := c.conn.Write(msg)
+	_, err := c.Conn.Write(msg)
 
 	if err != nil {
 		fmt.Printf("Error sending IAmCamera message")
@@ -78,20 +79,20 @@ func (c *TCPClient) SendIAMDispatcher(disp Dispatcher) {
 	}
 
 	// Write length of roads slice
-	if err := binary.Write(&buf, binary.BigEndian, uint8(len(disp.roads))); err != nil {
+	if err := binary.Write(&buf, binary.BigEndian, uint8(len(disp.Roads))); err != nil {
 		fmt.Printf("Error writing roads length: %v\n", err)
 		return
 	}
 
 	// Write the roads slice directly
-	if err := binary.Write(&buf, binary.BigEndian, disp.roads); err != nil {
+	if err := binary.Write(&buf, binary.BigEndian, disp.Roads); err != nil {
 		fmt.Printf("Error writing roads: %v\n", err)
 		return
 	}
 
 	// Send the buffer over the connection
 	msg := buf.Bytes()
-	_, err := c.conn.Write(msg)
+	_, err := c.Conn.Write(msg)
 	if err != nil {
 		fmt.Printf("Error sending IAmDispatcher message\n")
 		return

@@ -9,4 +9,6 @@ Tasks:
 - [ ] Issue Tickets and Manage Tickets
 - [ ] Heartbeat Scheduler 
 
-## Takeaways
+## Improvements 
+- Handle the client differently: for ex -> dispatcher conn shouldnt have access to the camera functions
+- Improve the performance of the daily limit check
