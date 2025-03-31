@@ -10,6 +10,7 @@ Collection of Networking Server Implementations in Pure Go
 - [3: Budget Chat](https://github.com/Nish7/just-servers/tree/main/3_budget_chat)
 - [4: Unusual Database Program](https://github.com/Nish7/just-servers/tree/main/4_unusual_database_program)
 - [5: Mob in the Middle](https://github.com/Nish7/just-servers/tree/main/5_mob_in_the_middle)
+- [6: Speed Daemon](https://github.com/Nish7/just-servers/tree/main/6_speed_daemon)
 
 ### Deployment
 Deployed a Droplet (1vCPU and 1GB Disk) on DigitalOcean
