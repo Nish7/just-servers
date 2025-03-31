@@ -6,24 +6,28 @@ import (
 	"io"
 	"log"
 	"net"
+	"sync"
 )
 
 type Server struct {
-	quitch      chan struct{}
-	listener    net.Listener
-	addr        string
-	store       Store
-	cameras     map[net.Conn]Camera
-	dispatchers map[net.Conn]Dispatcher
+	quitch        chan struct{}
+	listener      net.Listener
+	addr          string
+	store         Store
+	cameras       map[net.Conn]Camera
+	dispatchers   map[net.Conn]Dispatcher
+	pending_queue []Ticket
+	slock         sync.Mutex
 }
 
 func NewServer(addr string, store Store) *Server {
 	return &Server{
-		quitch:      make(chan struct{}),
-		addr:        addr,
-		store:       store,
-		cameras:     make(map[net.Conn]Camera),
-		dispatchers: make(map[net.Conn]Dispatcher),
+		quitch:        make(chan struct{}),
+		addr:          addr,
+		store:         store,
+		cameras:       make(map[net.Conn]Camera),
+		dispatchers:   make(map[net.Conn]Dispatcher),
+		pending_queue: []Ticket{},
 	}
 }
 
@@ -58,104 +62,62 @@ func (s *Server) Accept() {
 }
 
 func (s *Server) HandleConnection(conn net.Conn) {
-	defer conn.Close()
-	var client Client = -1
 	reader := bufio.NewReader(conn)
+	clientType := UNKNOWN
+	heartbeatRegistered := false
+
+	defer s.CleanUpClient(conn, &clientType)
 
 	for {
-		msgType, err := reader.ReadByte()
-		if err == io.EOF {
-			log.Println("Connection closed by remote end")
+		msgType, err := ReadMsgType(reader)
+		if err != nil {
+			log.Printf("[%s] Connection Error: %v", conn.RemoteAddr().String(), err)
 			return
+		}
+
+		switch msgType {
+		case IAMCAMERA_REQ:
+			err = s.HandleCameraReq(conn, reader, &clientType)
+		case IAMDISPATCHER_REQ:
+			err = s.HandleDispatcherReq(conn, reader, &clientType)
+		case PLATE_REQ:
+			err = s.HandlePlateReq(conn, reader, &clientType)
+		case WANTHEARTBEAT_REQ:
+			err = s.WantHeatbeatHandler(conn, reader, &heartbeatRegistered, &clientType)
+		default:
+			err = fmt.Errorf("Unknown message type: %X\n", msgType)
 		}
 
 		if err != nil {
-			log.Printf("[%s] Error Reading Connection %v", conn.RemoteAddr().String(), err)
+			s.ErrorHandler(err, conn)
 			return
 		}
-
-		// request handler
-		switch MsgType(msgType) {
-		case IAMCAMERA_REQ:
-			if client != -1 {
-				fmt.Printf("Connection already setup")
-				continue
-			}
-
-			d, err := ParseCameraRequest(reader)
-			if err != nil {
-				log.Printf("Failed to parse request %v", err)
-				return
-			}
-
-			client = CAMERA
-			s.HandleCameraReq(conn, d)
-			defer s.Cleanup(conn, client)
-		case IAMDISPATCHER_REQ:
-			if client != -1 {
-				fmt.Printf("Connection already setup")
-				continue
-			}
-
-			d, err := ParseDispatcherRecord(reader)
-			if err != nil {
-				log.Printf("Failed to parse request %v", err)
-				return
-			}
-
-			client = DISPATCHER
-			s.HandleDispatcherReq(conn, d)
-			defer s.Cleanup(conn, client)
-
-		case PLATE_REQ:
-			if client != CAMERA {
-				log.Printf("Invalid Client. Expected Camera")
-			}
-
-			d, err := ParsePlateRecord(reader)
-			if err != nil {
-				log.Printf("Failed to parse Request %v", err)
-				return
-			}
-
-			s.HandlePlateReq(conn, d)
-		default:
-			fmt.Printf("Unknown message type: %X\n", msgType)
-		}
 	}
 }
 
-func (s *Server) HandleDispatcherReq(conn net.Conn, req Dispatcher) error {
-	log.Printf("[%s] IAMDISPATCHER_REQ: Recived %v\n", conn.RemoteAddr().String(), req)
-	s.dispatchers[conn] = req
-	return nil
-}
-
-func (s *Server) HandleCameraReq(conn net.Conn, req Camera) error {
-	log.Printf("[%s] IAMCAMERA: Recived %v\n", conn.RemoteAddr().String(), req)
-	s.cameras[conn] = req
-	return nil
-}
-
-func (s *Server) HandlePlateReq(conn net.Conn, plate Plate) error {
-	cam := s.cameras[conn]
-	log.Printf("[%s] Plate Record Receieved: %v from Camera %v\n", conn.RemoteAddr().String(), plate, cam)
-
-	observation := Observation{Plate: plate.Plate, Road: cam.Road, Mile: cam.Mile, Timestamp: plate.Timestamp, Limit: cam.Limit}
-
-	s.store.AddObservation(observation)
-	s.HandleSpeedViolations(observation, conn)
-	return nil
-}
-
-func (s *Server) Cleanup(conn net.Conn, client Client) error {
-	switch client {
+func (s *Server) CleanUpClient(conn net.Conn, client *ClientType) {
+	defer conn.Close()
+	switch *client {
 	case CAMERA:
+		s.slock.Lock()
 		delete(s.cameras, conn)
+		s.slock.Unlock()
 	case DISPATCHER:
+		s.slock.Lock()
 		delete(s.dispatchers, conn)
-	default:
-		return fmt.Errorf("Invalid Client type")
+		s.slock.Unlock()
 	}
-	return nil
+}
+
+func ReadMsgType(reader *bufio.Reader) (MsgType, error) {
+	msgType, err := reader.ReadByte()
+	if err == io.EOF {
+		return 0, fmt.Errorf("Connection closed by remote end")
+	}
+
+	if err != nil {
+		return 0, fmt.Errorf("Unknown Error %v", err)
+	}
+
+	return MsgType(msgType), nil
 }

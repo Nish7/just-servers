@@ -1,18 +1,18 @@
 package main
 
 import (
-	"encoding/binary"
-	"fmt"
 	"log"
+	"math"
 	"net"
 	"slices"
 )
 
-func (s *Server) HandleSpeedViolations(obs Observation, conn net.Conn) {
-	log.Printf("[%s] Prior Observations [%s]: %v", conn.RemoteAddr().String(), obs.Plate, s.store.GetObservations(obs.Plate))
+func (s *Server) handleSpeedViolations(conn net.Conn, obs Observation) error {
+	observations := s.store.GetObservations(obs.Plate)
+	log.Printf("[%s] Prior Observations [%s]: %v", conn.RemoteAddr().String(), obs.Plate, observations)
 
 	// for all prior observation check any speed violations
-	for _, preObs := range s.store.GetObservations(obs.Plate) {
+	for _, preObs := range observations {
 		if preObs.Road != obs.Road || preObs.Timestamp == obs.Timestamp {
 			continue
 		}
@@ -24,7 +24,7 @@ func (s *Server) HandleSpeedViolations(obs Observation, conn net.Conn) {
 		}
 
 		isSpeedViolation, speed := isSpeedViolation(obs1, obs2)
-		log.Printf("[%s] isSpeedViolation[%v] - %v\n", conn.RemoteAddr().String(), isSpeedViolation, speed)
+		log.Printf("[%s] isSpeedViolation[%v] - %v", conn.RemoteAddr().String(), isSpeedViolation, speed)
 
 		if !isSpeedViolation {
 			continue
@@ -40,54 +40,44 @@ func (s *Server) HandleSpeedViolations(obs Observation, conn net.Conn) {
 			Speed:      speed,
 		}
 
-		priorPlateTickets := s.store.GetTickets(obs.Plate)
-		log.Printf("[%s] Prior Plate Tickets [%s]: %v", conn.RemoteAddr().String(), obs.Plate, priorPlateTickets)
-		if !CheckTicketLimit(ticket, priorPlateTickets, conn) {
+		if !s.CheckTicketLimit(conn, ticket) {
 			continue
 		}
 
-		s.DispatchTicket(ticket, conn)
-	}
-}
-
-func (s *Server) DispatchTicket(ticket *Ticket, conn net.Conn) {
-	for c, disp := range s.dispatchers {
-		if slices.Contains(disp.Roads, ticket.Road) {
-			s.store.AddTicket(*ticket)
-			err := s.SendTicket(c, ticket)
-			if err != nil {
-				fmt.Println("Error sending ticket:", err)
-			} else {
-				log.Printf("[%s] Ticket sent for %s on road %d [%v]\n", conn.RemoteAddr().String(), ticket.Plate, ticket.Road, ticket)
-			}
-			return
+		err := s.DispatchTicket(conn, ticket)
+		if err != nil {
+			return err
 		}
 	}
+	return nil
+}
 
-	log.Printf("No Dispatcher Found")
+func (s *Server) DispatchTicket(conn net.Conn, ticket *Ticket) error {
+	// check all active dispatcher
+	log.Printf("[%s] Dispatching Ticket [%v]\n", conn.RemoteAddr().String(), ticket)
+	for c, disp := range s.dispatchers {
+		if slices.Contains(disp.Roads, ticket.Road) {
+			err := s.SendTicket(c, ticket)
+			if err != nil {
+				return err
+			}
+			log.Printf("[%s] Ticket sent for %s on road %d [%v]\n", conn.RemoteAddr().String(), ticket.Plate, ticket.Road, ticket)
+			return nil
+		}
+	}
+	log.Printf("[%s] No Dispatcher Found. Adding to the Pending Queue\n", conn.RemoteAddr().String())
+	s.pending_queue = append(s.pending_queue, *ticket)
+	return nil
 }
 
 func (s *Server) SendTicket(conn net.Conn, ticket *Ticket) error {
-	plateLen := len(ticket.Plate)
-	msg := make([]byte, 1+1+plateLen+16)
-
-	// TODO: to be improved
-	msg[0] = byte(TICKET_RESP)
-	msg[1] = byte(plateLen)
-	copy(msg[2:2+plateLen], ticket.Plate)
-	binary.BigEndian.PutUint16(msg[2+plateLen:4+plateLen], ticket.Road)
-	binary.BigEndian.PutUint16(msg[4+plateLen:6+plateLen], ticket.Mile1)
-	binary.BigEndian.PutUint32(msg[6+plateLen:10+plateLen], ticket.Timestamp1)
-	binary.BigEndian.PutUint16(msg[10+plateLen:12+plateLen], ticket.Mile2)
-	binary.BigEndian.PutUint32(msg[12+plateLen:16+plateLen], ticket.Timestamp2)
-	binary.BigEndian.PutUint16(msg[16+plateLen:18+plateLen], ticket.Speed)
-
-	_, err := conn.Write(msg)
+	s.store.AddTicket(*ticket)
+	_, err := conn.Write(EncodeTicket(ticket))
 	return err
 }
 
 func isSpeedViolation(obs1, obs2 Observation) (bool, uint16) {
-	distance := uint32(obs2.Mile - obs1.Mile)
+	distance := uint32(math.Abs(float64(obs2.Mile) - float64(obs1.Mile)))
 	time := obs2.Timestamp - obs1.Timestamp // unix timestamp -> seconds
 	if time == 0 {
 		return false, 0
@@ -104,13 +94,17 @@ func isSpeedViolation(obs1, obs2 Observation) (bool, uint16) {
 }
 
 // implementing multi-day limit and with one limit per day
-func CheckTicketLimit(ticket *Ticket, plateTickets []Ticket, conn net.Conn) bool {
+func (s *Server) CheckTicketLimit(conn net.Conn, ticket *Ticket) bool {
 	day1 := ticket.Timestamp1 / 86400
 	day2 := ticket.Timestamp2 / 86400
 
 	// check one ticket per day
-	for _, t := range plateTickets {
-		if t.Timestamp1 == day1 || day1 == t.Timestamp2 || day2 == t.Timestamp1 || day2 == t.Timestamp2 {
+	priorPlateTickets := s.store.GetTickets(ticket.Plate)
+	log.Printf("[%s] Prior Plate Tickets [%s]: %v", conn.RemoteAddr().String(), ticket.Plate, priorPlateTickets)
+	for _, t := range priorPlateTickets {
+		t1 := t.Timestamp1 / 86400
+		t2 := t.Timestamp2 / 86400
+		if t1 == day1 || day1 == t2 || day2 == t1 || day2 == t2 {
 			log.Printf("[%s] Ticket Already Exist for Timestamp [%d or %d]\n", conn.RemoteAddr().String(), day1, day2)
 			return false
 		}
